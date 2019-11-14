@@ -1,3 +1,8 @@
 {
-	"recommendations": ["rust-lang.rust", "xoronic.pestfile"]
+	"recommendations": [
+		"be5invis.toml",
+		"rust-lang.rust",
+		"serayuzgur.crates",
+		"xoronic.pestfile"
+	]
 }

@@ -1,9 +1,10 @@
 [package]
-name = "editorconfig_ini"
+name = "editorconfig"
 version = "0.1.0"
 authors = ["Jed Mao <jedmao@outlook.com>"]
 edition = "2018"
 
 [dependencies]
+clap = "2.33.0"
 pest = "2.1.2"
 pest_derive = "2.1.0"
