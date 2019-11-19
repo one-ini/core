@@ -8,6 +8,7 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+use pest::error::Error;
 use pest::Parser;
 
 #[derive(Parser)]
@@ -22,77 +23,96 @@ pub struct INIParser;
 /// let contents = "root=true";
 /// let ast = editorconfig::parse(contents);
 /// ```
-pub fn parse(contents: &String) -> EditorConfigINIAST {
-	let file = INIParser::parse(Rule::file, contents)
-		.expect("unsuccessful parse")
-		.next()
-		.unwrap();
-	let mut section = Section {
-		kind: "section",
-		name: "prelude",
-		props: Vec::new(),
-	};
-	let sections: Vec<Section> = Vec::new();
-	sections.append(section);
-	let ast = EditorConfigINIAST {
-		kind: "EditorConfigINI",
-		version: "0.1.2",
-		props: Vec::new(),
-		sections,
-	};
+pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
+	match INIParser::parse(Rule::file, contents) {
+		Ok(mut pairs) => {
+			let item = pairs.next().unwrap();
+			let mut current_section: Option<Section> = None;
+			let mut ast = EditorConfigINIAST {
+				version: "0.1.2".to_string(),
+				body: Vec::new(),
+			};
 
-	for line in file.into_inner() {
-		match line.as_rule() {
-			Rule::section => {
-				section = Section {
-					kind: "section",
-					name: line.into_inner().next().unwrap().as_str(),
-					props: Vec::new(),
-				};
-				ast.sections.append(&section);
+			for line in item.into_inner() {
+				match line.as_rule() {
+					Rule::section => {
+						if current_section.is_some() {
+							ast.body.push(Item::Section(current_section.unwrap()));
+						}
+						current_section = Some(Section {
+							name: line.into_inner().next().unwrap().as_str().to_string(),
+							body: Vec::new(),
+						});
+					}
+					Rule::property => {
+						let mut inner_rules = line.into_inner();
+						let prop = Item::Property(Property {
+							name: inner_rules.next().unwrap().as_str().to_string(),
+							value: inner_rules.next().unwrap().as_str().to_string(),
+							newline: "\n".to_string(),
+						});
+						match &mut current_section {
+							Some(ref mut section) => {
+								section.body.push(prop);
+							}
+							None => {
+								ast.body.push(prop);
+							}
+						}
+					}
+					Rule::EOI => {
+						if current_section.is_some() {
+							ast.body.push(Item::Section(current_section.unwrap()));
+							current_section = None;
+						}
+					}
+					_ => unreachable!(),
+				}
 			}
-			Rule::property => {
-				let inner_rules = line.into_inner();
-				let prop = Property {
-					kind: "property",
-					name: inner_rules.next().unwrap().as_str(),
-					value: inner_rules.next().unwrap().as_str(),
-				};
-				section.props.append(prop);
-			}
-			Rule::EOI => (),
-			_ => unreachable!(),
+
+			return Ok(ast);
 		}
+		Err(e) => Err(e),
 	}
-
-	return ast;
 }
 
 #[derive(Debug)]
-struct EditorConfigINIAST<'a, 'b> {
-	kind: &'a str,
-	version: &'a str,
-	props: Vec<&'b Token<'a>>,
-	sections: Vec<Section<'a, 'b>>,
+enum Item {
+	// BlankLine(BlankLine),
+	// Comment(Comment),
+	Property(Property),
+	Section(Section),
 }
 
 #[derive(Debug)]
-struct Section<'a, 'b> {
-	kind: &'a str,
-	name: &'a str,
-	props: Vec<&'b Token<'a>>,
+pub struct EditorConfigINIAST {
+	version: String,
+	body: Vec<Item>,
 }
 
 #[derive(Debug)]
-struct Property<'a> {
-	kind: &'a str,
-	name: &'a str,
-	value: &'a str,
+struct Section {
+	name: String,
+	body: Vec<Item>,
 }
 
 #[derive(Debug)]
-struct Token<'a> {
-	kind: &'a str, // pretty(&self) -> String;
-	               // toAST(&self) -> String;
-	               // toString(&self) -> String;
+struct Property {
+	name: String,
+	value: String,
+	newline: String,
 }
+
+// #[derive(Debug)]
+// struct BlankLine {
+// 	newline: String,
+// 	// raws.before
+// }
+
+// #[derive(Debug)]
+// struct Comment {
+// 	indicator: String,
+// 	value: String,
+// 	newline: String,
+// 	// raws.before
+// }
