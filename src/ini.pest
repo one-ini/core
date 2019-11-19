@@ -1,13 +1,10 @@
-WHITESPACE = _{ " " }
-char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
-name = @{ char+ }
-value = @{ char* }
+ini = { SOI ~ (section | pair | comment)* ~ EOI }
 
-section = { "[" ~ name ~ "]" }
-property = { name ~ "=" ~ value }
+section = { "[" ~ key ~ "]" }
+pair = { key ~ "=" ~ value }
+comment = { (";" | "#" ~ value }
 
-file = {
-	SOI ~
-	((section | property)? ~ NEWLINE)* ~
-	EOI
-}
+key = @{ (!("]" | "=" | WHITESPACE) ~ ANY)+ }
+value = @{ (!(NEWLINE) ~ ANY)+ }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
