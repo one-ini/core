@@ -1,13 +1,17 @@
-WHITESPACE = _{ " " }
+ini = { SOI ~ (section | pair | comment | blank_line)* ~ ws? ~ EOI }
+ws = { (" " | "\t")* }
+
+// section
+section = { ws ~ "[" ~ name ~ "]" ~ ws ~ newline? }
 char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
+newline = { NEWLINE }
+
+// key-value pair
+pair = { ws ~ name ~ ws ~ equals ~ ws ~ value ~ ws ~ newline? }
+equals = { "=" }
 name = @{ char+ }
 value = @{ char* }
 
-section = { "[" ~ name ~ "]" }
-property = { name ~ "=" ~ value }
-
-file = {
-	SOI ~
-	((section | property)? ~ NEWLINE)* ~
-	EOI
-}
+comment = { ws ~ delimiter ~ value? ~ newline? }
+delimiter = { "#" | ";" }
+blank_line = { ws ~ newline }

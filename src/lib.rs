@@ -24,7 +24,7 @@ pub struct INIParser;
 /// let ast = editorconfig::parse(contents);
 /// ```
 pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
-	match INIParser::parse(Rule::file, contents) {
+	match INIParser::parse(Rule::ini, contents) {
 		Ok(mut pairs) => {
 			let item = pairs.next().unwrap();
 			let mut current_section: Option<Section> = None;
@@ -40,16 +40,27 @@ pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 							ast.body.push(Item::Section(current_section.unwrap()));
 						}
 						current_section = Some(Section {
-							name: line.into_inner().next().unwrap().as_str().to_string(),
+							header: SectionHeader {
+								name: line.into_inner().next().unwrap().as_str().to_string(),
+								raws: Raws {
+									before: Some("".to_string()),
+									after: Some("".to_string()),
+									newline: Some("\n".to_string()),
+								},
+							},
 							body: Vec::new(),
 						});
 					}
-					Rule::property => {
+					Rule::pair => {
 						let mut inner_rules = line.into_inner();
-						let prop = Item::Property(Property {
+						let prop = Item::Pair(Pair {
 							name: inner_rules.next().unwrap().as_str().to_string(),
 							value: inner_rules.next().unwrap().as_str().to_string(),
-							newline: "\n".to_string(),
+							raws: Raws {
+								before: Some("".to_string()),
+								after: Some("".to_string()),
+								newline: Some("\n".to_string()),
+							},
 						});
 						match &mut current_section {
 							Some(ref mut section) => {
@@ -57,6 +68,62 @@ pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 							}
 							None => {
 								ast.body.push(prop);
+							}
+						}
+					}
+					Rule::comment => {
+						let mut inner_rules = line.into_inner();
+						let comment = Item::Comment(Comment {
+							indicator: inner_rules.next().unwrap().as_str().to_string(),
+							value: inner_rules.next().unwrap().as_str().to_string(),
+							raws: Raws {
+								before: Some("".to_string()),
+								after: Some("".to_string()),
+								newline: Some(inner_rules.next().unwrap().as_str().to_string()),
+							},
+						});
+						match &mut current_section {
+							Some(ref mut section) => {
+								section.body.push(comment);
+							}
+							None => {
+								ast.body.push(comment);
+							}
+						}
+					}
+					Rule::blank_line => {
+						let mut inner_rules = line.into_inner();
+						let whitespace = inner_rules.next().unwrap().as_str().to_string();
+						let line = Item::Raws(Raws {
+							before: if whitespace == "" {
+								Some(whitespace)
+							} else {
+								None
+							},
+							after: None,
+							newline: Some(inner_rules.next().unwrap().as_str().to_string()),
+						});
+						match &mut current_section {
+							Some(ref mut section) => {
+								section.body.push(line);
+							}
+							None => {
+								ast.body.push(line);
+							}
+						}
+					}
+					Rule::ws => {
+						let line = Item::Raws(Raws {
+							before: Some(line.into_inner().next().unwrap().as_str().to_string()),
+							after: None,
+							newline: None,
+						});
+						match &mut current_section {
+							Some(ref mut section) => {
+								section.body.push(line);
+							}
+							None => {
+								ast.body.push(line);
 							}
 						}
 					}
@@ -78,9 +145,9 @@ pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 
 #[derive(Debug)]
 enum Item {
-	// BlankLine(BlankLine),
-	// Comment(Comment),
-	Property(Property),
+	Raws(Raws),
+	Comment(Comment),
+	Pair(Pair),
 	Section(Section),
 }
 
@@ -92,27 +159,33 @@ pub struct EditorConfigINIAST {
 
 #[derive(Debug)]
 struct Section {
-	name: String,
+	header: SectionHeader,
 	body: Vec<Item>,
 }
 
 #[derive(Debug)]
-struct Property {
+struct SectionHeader {
 	name: String,
-	value: String,
-	newline: String,
+	raws: Raws,
 }
 
-// #[derive(Debug)]
-// struct BlankLine {
-// 	newline: String,
-// 	// raws.before
-// }
+#[derive(Debug)]
+struct Raws {
+	before: Option<String>,
+	after: Option<String>,
+	newline: Option<String>,
+}
 
-// #[derive(Debug)]
-// struct Comment {
-// 	indicator: String,
-// 	value: String,
-// 	newline: String,
-// 	// raws.before
-// }
+#[derive(Debug)]
+struct Pair {
+	name: String,
+	value: String,
+	raws: Raws,
+}
+
+#[derive(Debug)]
+struct Comment {
+	indicator: String,
+	value: String,
+	raws: Raws,
+}
