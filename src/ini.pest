@@ -1,17 +1,14 @@
-ini = { SOI ~ (section | pair | comment | blank_line)* ~ ws? ~ EOI }
-ws = { (" " | "\t")* }
+ini = { SOI ~ ((pair | comment)? ~ (NEWLINE | EOI))* ~ section* }
+WHITESPACE = _{ " " | "\t" }
 
 // section
-section = { ws ~ "[" ~ name ~ "]" ~ ws ~ newline? }
+section = { "[" ~ name ~ "]" ~ (NEWLINE ~ (pair | comment)?)* }
+name = @{ char+ }
 char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
-newline = { NEWLINE }
 
 // key-value pair
-pair = { ws ~ name ~ ws ~ equals ~ ws ~ value ~ ws ~ newline? }
-equals = { "=" }
-name = @{ char+ }
+pair = { name ~ "="? ~ value }
 value = @{ char* }
 
-comment = { ws ~ delimiter ~ value? ~ newline? }
-delimiter = { "#" | ";" }
-blank_line = { ws ~ newline }
+comment = { indicator ~ value? }
+indicator = { "#" | ";" }
