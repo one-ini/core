@@ -8,7 +8,8 @@ char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
 body = { (NEWLINE ~ (pair | comment)?)* }
 
 // key-value pair
-pair = { name ~ "="? ~ value }
+pair = { key ~ "=" ~ value }
+key = @{ char+ }
 value = @{ char* }
 
 comment = { indicator ~ value? }

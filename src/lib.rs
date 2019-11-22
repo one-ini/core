@@ -1,8 +1,8 @@
 //! # EditorConfig
 //!
 //! `editorconfig` is a collection of utilities that handle the parsing of
-//! EditorConfig-INI file contents into AST, modifying the AST and serializing
-//! the result back into a string.
+//! EditorConfig-INI file contents into AST, which can then be modified,
+//! serialized and deserialized.
 
 extern crate pest;
 #[macro_use]
@@ -55,7 +55,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			Rule::pair => {
 				let mut inner_rules = p.into_inner();
 				return Item::Pair(Pair {
-					name: inner_rules.next().unwrap().as_str().to_string(),
+					key: inner_rules.next().unwrap().as_str().to_string(),
 					value: inner_rules.next().unwrap().as_str().to_string(),
 				});
 			}
@@ -92,7 +92,7 @@ struct Section {
 
 #[derive(Debug)]
 struct Pair {
-	name: String,
+	key: String,
 	value: String,
 }
 
