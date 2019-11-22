@@ -24,63 +24,57 @@ pub struct INIParser;
 /// let ast = editorconfig::parse(contents);
 /// ```
 pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
-	match INIParser::parse(Rule::file, contents) {
+	match INIParser::parse(Rule::ini, contents) {
 		Ok(mut pairs) => {
-			let item = pairs.next().unwrap();
-			let mut current_section: Option<Section> = None;
-			let mut ast = EditorConfigINIAST {
-				version: "0.1.2".to_string(),
-				body: Vec::new(),
-			};
-
-			for line in item.into_inner() {
-				match line.as_rule() {
-					Rule::section => {
-						if current_section.is_some() {
-							ast.body.push(Item::Section(current_section.unwrap()));
-						}
-						current_section = Some(Section {
-							name: line.into_inner().next().unwrap().as_str().to_string(),
-							body: Vec::new(),
-						});
-					}
-					Rule::property => {
-						let mut inner_rules = line.into_inner();
-						let prop = Item::Property(Property {
-							name: inner_rules.next().unwrap().as_str().to_string(),
-							value: inner_rules.next().unwrap().as_str().to_string(),
-							newline: "\n".to_string(),
-						});
-						match &mut current_section {
-							Some(ref mut section) => {
-								section.body.push(prop);
-							}
-							None => {
-								ast.body.push(prop);
-							}
-						}
-					}
-					Rule::EOI => {
-						if current_section.is_some() {
-							ast.body.push(Item::Section(current_section.unwrap()));
-							current_section = None;
-						}
-					}
-					_ => unreachable!(),
-				}
-			}
-
-			return Ok(ast);
+			return Ok(EditorConfigINIAST {
+				version: "0.1.0".to_string(),
+				body: create_body(pairs.next().unwrap()),
+			});
 		}
 		Err(e) => Err(e),
 	}
 }
 
+fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
+	return pair
+		.into_inner()
+		.map(|p| match p.as_rule() {
+			Rule::section => {
+				let mut inner_rules = p.into_inner();
+				let name = inner_rules.next().unwrap().as_str().to_string();
+				let body = inner_rules.next();
+				return Item::Section(Section {
+					name,
+					body: if body.is_none() {
+						vec![]
+					} else {
+						create_body(body.unwrap())
+					},
+				});
+			}
+			Rule::pair => {
+				let mut inner_rules = p.into_inner();
+				return Item::Pair(Pair {
+					name: inner_rules.next().unwrap().as_str().to_string(),
+					value: inner_rules.next().unwrap().as_str().to_string(),
+				});
+			}
+			Rule::comment => {
+				let mut inner_rules = p.into_inner();
+				return Item::Comment(Comment {
+					indicator: inner_rules.next().unwrap().as_str().to_string(),
+					value: inner_rules.next().unwrap().as_str().to_string(),
+				});
+			}
+			_ => unreachable!(),
+		})
+		.collect();
+}
+
 #[derive(Debug)]
 enum Item {
-	// BlankLine(BlankLine),
-	// Comment(Comment),
-	Property(Property),
+	Comment(Comment),
+	Pair(Pair),
 	Section(Section),
 }
 
@@ -97,22 +91,13 @@ struct Section {
 }
 
 #[derive(Debug)]
-struct Property {
+struct Pair {
 	name: String,
 	value: String,
-	newline: String,
 }
 
-// #[derive(Debug)]
-// struct BlankLine {
-// 	newline: String,
-// 	// raws.before
-// }
-
-// #[derive(Debug)]
-// struct Comment {
-// 	indicator: String,
-// 	value: String,
-// 	newline: String,
-// 	// raws.before
-// }
+#[derive(Debug)]
+struct Comment {
+	indicator: String,
+	value: String,
+}
