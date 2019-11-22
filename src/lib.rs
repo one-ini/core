@@ -25,24 +25,31 @@ pub struct INIParser;
 /// ```
 pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 	match INIParser::parse(Rule::ini, contents) {
-		Ok(pairs) => {
+		Ok(mut pairs) => {
 			return Ok(EditorConfigINIAST {
 				version: "0.1.0".to_string(),
-				body: create_body(pairs),
+				body: create_body(pairs.next().unwrap()),
 			});
 		}
 		Err(e) => Err(e),
 	}
 }
 
-fn create_body(pairs: pest::iterators::Pairs<'_, Rule>) -> Vec<Item> {
-	return pairs
+fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
+	return pair
+		.into_inner()
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
+				let name = inner_rules.next().unwrap().as_str().to_string();
+				let body = inner_rules.next();
 				return Item::Section(Section {
-					name: inner_rules.next().unwrap().as_str().to_string(),
-					body: create_body(inner_rules),
+					name,
+					body: if body.is_none() {
+						vec![]
+					} else {
+						create_body(body.unwrap())
+					},
 				});
 			}
 			Rule::pair => {

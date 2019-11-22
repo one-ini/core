@@ -2,9 +2,10 @@ ini = { SOI ~ ((pair | comment)? ~ (NEWLINE | EOI))* ~ section* }
 WHITESPACE = _{ " " | "\t" }
 
 // section
-section = { "[" ~ name ~ "]" ~ (NEWLINE ~ (pair | comment)?)* }
+section = { "[" ~ name ~ "]" ~ body }
 name = @{ char+ }
 char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
+body = { (NEWLINE ~ (pair | comment)?)* }
 
 // key-value pair
 pair = { name ~ "="? ~ value }
