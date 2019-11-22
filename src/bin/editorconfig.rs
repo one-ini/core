@@ -20,7 +20,7 @@ fn main() {
 	let unparsed_file = fs::read_to_string(ini_path).expect("cannot read file");
 
 	println!(
-		"{:#?}",
+		"{}",
 		editorconfig::parse(&unparsed_file).unwrap().to_string()
 	);
 }

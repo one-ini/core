@@ -81,7 +81,7 @@ pub struct EditorConfigINIAST {
 impl fmt::Display for EditorConfigINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		for item in &self.body {
-			write!(formatter, "{}", item)?;
+			item.fmt(formatter)?;
 		}
 		Ok(())
 	}
@@ -96,7 +96,11 @@ pub enum Item {
 
 impl fmt::Display for Item {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		write!(formatter, "{}", self)?;
+		match self {
+			Item::Comment(comment) => comment.fmt(formatter),
+			Item::Pair(pair) => pair.fmt(formatter),
+			Item::Section(section) => section.fmt(formatter),
+		}?;
 		Ok(())
 	}
 }
@@ -122,7 +126,7 @@ pub struct Pair {
 
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{} = {}", self.key, self.value)?;
+		writeln!(formatter, "{}={}", self.key, self.value)?;
 		Ok(())
 	}
 }
@@ -137,7 +141,7 @@ impl fmt::Display for Section {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "[{}]", self.name)?;
 		for item in &self.body {
-			write!(formatter, "{}", item)?;
+			item.fmt(formatter)?;
 		}
 		Ok(())
 	}
