@@ -2,7 +2,13 @@
 name = "editorconfig"
 version = "0.1.0"
 authors = ["Jed Mao <jedmao@outlook.com>"]
+keywords = ["parser", "editorconfig", "ini"]
+categories = ["configuration", "parsing"]
 edition = "2018"
+# repository = "https://github.com/editorconfi/editorconfig-core-rust"
+# documentation = "https://docs.rs/editorconfig"
+license = "MIT"
+publish = false
 
 [dependencies]
 clap = "2.33.0"
