@@ -91,9 +91,27 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///         key: "root".to_string(),
 ///         value: "true".to_string(),
 ///     }),
+///     Item::Section(Section {
+///         name: "one".to_string(),
+///         body: vec![
+///             Item::Comment(Comment {
+///                 indicator: "#".to_string(),
+///                 value: "body1".to_string(),
+///             }),
+///         ],
+///     }),
+///     Item::Section(Section {
+///         name: "two".to_string(),
+///         body: vec![
+///             Item::Comment(Comment {
+///                 indicator: ";".to_string(),
+///                 value: "body2".to_string(),
+///             }),
+///         ],
+///     }),
 /// ]);
 ///
-/// assert_eq!(ast.to_string(), "root=true\n");
+/// assert_eq!(ast.to_string(), "root=true\n\n[one]\n# body1\n\n[two]\n; body2\n");
 /// ```
 #[derive(Debug)]
 pub struct EditorConfigINIAST {
@@ -112,8 +130,18 @@ impl EditorConfigINIAST {
 
 impl fmt::Display for EditorConfigINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		let mut wrote = false;
 		for item in &self.body {
+			match item {
+				Item::Section(_section) => {
+					if wrote {
+						writeln!(formatter, "")?;
+					}
+				}
+				_ => (),
+			}
 			item.fmt(formatter)?;
+			wrote = true;
 		}
 		Ok(())
 	}
@@ -185,7 +213,7 @@ pub struct Pair {
 
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{}={}", self.key, self.value)?;
+		writeln!(formatter, "{}={}", self.key.trim(), self.value)?;
 		Ok(())
 	}
 }
