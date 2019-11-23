@@ -6,18 +6,18 @@ use std::fs;
 
 fn main() {
 	let matches = App::new("EditorConfig")
-		.version("0.1.0")
+		.version(env!("CARGO_PKG_VERSION"))
 		.author("Jed Mao <jedmao@outlook.com>")
-		.about("Parses an INI file into AST")
+		.about("Gets a configuration for a file path")
 		.arg(
-			Arg::with_name("ini_path")
-				.help("Sets the INI file path to read")
+			Arg::with_name("file_path")
+				.help("The file for which you want a configuration")
 				.required(true),
 		)
 		.get_matches();
 
-	let ini_path = matches.value_of("ini_path").unwrap();
-	let unparsed_file = fs::read_to_string(ini_path).expect("cannot read file");
+	let file_path = matches.value_of("file_path").unwrap();
+	let unparsed_file = fs::read_to_string(file_path).expect("cannot read file");
 
 	println!(
 		"{}",

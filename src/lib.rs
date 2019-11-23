@@ -20,12 +20,10 @@ struct INIParser;
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
-/// extern crate editorconfig;
-///
-/// let contents = "root=true";
+/// let contents = "root=true\n";
 /// let ast = editorconfig::parse(contents);
 ///
 /// assert_eq!(ast.unwrap().to_string(), contents);
@@ -42,6 +40,10 @@ pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 	return pair
 		.into_inner()
+		.filter(|p| match p.as_rule() {
+			Rule::EOI => false,
+			_ => true,
+		})
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
@@ -79,12 +81,10 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// a [parsed](fn.parse.html) INI file that conforms to the
 /// [EditorConfig INI file format](https://editorconfig-specification.readthedocs.io/en/latest/#file-format).
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
-/// extern crate editorconfig;
-///
-/// use editorconfig::{EditorConfigINIAST,Item,Pair};
+/// use editorconfig::*;
 ///
 /// let ast = EditorConfigINIAST::new(vec![
 ///     Item::Pair(Pair {
@@ -102,9 +102,9 @@ pub struct EditorConfigINIAST {
 }
 
 impl EditorConfigINIAST {
-	fn new(body: Vec<Item>) -> Self {
+	pub fn new(body: Vec<Item>) -> Self {
 		EditorConfigINIAST {
-			version: env::var("version").unwrap(),
+			version: env!("CARGO_PKG_VERSION").to_string(),
 			body,
 		}
 	}
@@ -142,24 +142,20 @@ impl fmt::Display for Item {
 /// Starts with either a `#` or `;` comment indicator on a new or blank line,
 /// followed by any characters until it reaches a newline or the end of input.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
-/// extern crate editorconfig;
-///
-/// use editorconfig::Comment;
-///
-/// let comment = Comment {
+/// let comment = editorconfig::Comment {
 ///     indicator: "#".to_string(),
-///     value: "hello",
+///     value: "hello".to_string(),
 /// };
 ///
 /// assert_eq!(comment.to_string(), "# hello\n");
 /// ```
 #[derive(Debug)]
 pub struct Comment {
-	indicator: String,
-	value: String,
+	pub indicator: String,
+	pub value: String,
 }
 
 impl fmt::Display for Comment {
@@ -171,14 +167,10 @@ impl fmt::Display for Comment {
 
 /// A key-value pair.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
-/// extern crate editorconfig;
-///
-/// use editorconfig::Pair;
-///
-/// let pair = Pair {
+/// let pair = editorconfig::Pair {
 ///     key: "left".to_string(),
 ///     value: "right".to_string(),
 /// };
@@ -187,8 +179,8 @@ impl fmt::Display for Comment {
 /// ```
 #[derive(Debug)]
 pub struct Pair {
-	key: String,
-	value: String,
+	pub key: String,
+	pub value: String,
 }
 
 impl fmt::Display for Pair {
@@ -200,36 +192,34 @@ impl fmt::Display for Pair {
 
 /// Starts with a header and ends just before another section begins.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
-/// extern crate editorconfig;
-///
-/// use editorconfig::{Item,Section};
+/// use editorconfig::*;
 ///
 /// let section = Section {
 ///     name: "header".to_string(),
 ///     body: vec![
-///         Item::Comment {
+///         Item::Comment(Comment {
 ///             indicator: "#".to_string(),
-///             value: "beginning of section body".to_string(),
-///         },
-///         Item::Pair {
+///             value: "body".to_string(),
+///         }),
+///         Item::Pair(Pair {
 ///             key: "left".to_string(),
 ///             value: "right".to_string(),
-///         },
+///         }),
 ///     ],
 /// };
 ///
-/// assert_eq!(section.to_string(), "[header]\nleft=right\n");
+/// assert_eq!(section.to_string(), "[header]\n# body\nleft=right\n");
 /// ```
 #[derive(Debug)]
 pub struct Section {
 	/// The section header's name (i.e., the part between `[` and `]`).,
-	name: String,
+	pub name: String,
 	/// Contains any number of items, which may only consist of
 	/// comments and pairs.
-	body: Vec<Item>,
+	pub body: Vec<Item>,
 }
 
 impl fmt::Display for Section {
@@ -239,21 +229,5 @@ impl fmt::Display for Section {
 			item.fmt(formatter)?;
 		}
 		Ok(())
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn pair() {
-		let pair = Pair {
-			key: "left".to_string(),
-			value: "right".to_string(),
-		};
-
-		assert_eq!(pair.key, "left");
-		assert_eq!(pair.value, "right");
 	}
 }

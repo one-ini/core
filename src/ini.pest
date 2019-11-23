@@ -1,16 +1,16 @@
-ini = { SOI ~ ((pair | comment)? ~ (NEWLINE | EOI))* ~ section* }
+ini = { SOI ~ (pair | comment)* ~ section* ~ EOI }
 WHITESPACE = _{ " " | "\t" }
 
 // section
 section = { "[" ~ name ~ "]" ~ body }
 name = @{ char+ }
-char = { ASCII_ALPHANUMERIC | "." | "_" | "/" }
+char = { ASCII_ALPHANUMERIC | "." | "_" | "/" | " " }
 body = { (NEWLINE ~ (pair | comment)?)* }
 
 // key-value pair
-pair = { key ~ "=" ~ value }
+pair = { key ~ "=" ~ value ~ (NEWLINE | EOI) }
 key = @{ char+ }
-value = @{ char* }
+value = @{ (char | "=")* }
 
-comment = { indicator ~ value? }
+comment = { indicator ~ value? ~ (NEWLINE | EOI) }
 indicator = { "#" | ";" }
