@@ -19,5 +19,8 @@ fn main() {
 	let ini_path = matches.value_of("ini_path").unwrap();
 	let unparsed_file = fs::read_to_string(ini_path).expect("cannot read file");
 
-	println!("parsed: {:#?}", editorconfig::parse(&unparsed_file));
+	println!(
+		"{}",
+		editorconfig::parse(&unparsed_file).unwrap().to_string()
+	);
 }

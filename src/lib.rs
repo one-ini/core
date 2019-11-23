@@ -10,6 +10,7 @@ extern crate pest_derive;
 
 use pest::error::Error;
 use pest::Parser;
+use std::fmt;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
@@ -72,32 +73,76 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 }
 
 #[derive(Debug)]
-enum Item {
+pub struct EditorConfigINIAST {
+	pub version: String,
+	pub body: Vec<Item>,
+}
+
+impl fmt::Display for EditorConfigINIAST {
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		for item in &self.body {
+			item.fmt(formatter)?;
+		}
+		Ok(())
+	}
+}
+
+#[derive(Debug)]
+pub enum Item {
 	Comment(Comment),
 	Pair(Pair),
 	Section(Section),
 }
 
-#[derive(Debug)]
-pub struct EditorConfigINIAST {
-	version: String,
-	body: Vec<Item>,
+impl fmt::Display for Item {
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			Item::Comment(comment) => comment.fmt(formatter),
+			Item::Pair(pair) => pair.fmt(formatter),
+			Item::Section(section) => section.fmt(formatter),
+		}?;
+		Ok(())
+	}
 }
 
 #[derive(Debug)]
-struct Section {
-	name: String,
-	body: Vec<Item>,
+pub struct Comment {
+	indicator: String,
+	value: String,
+}
+
+impl fmt::Display for Comment {
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		writeln!(formatter, "{} {}", self.indicator, self.value)?;
+		Ok(())
+	}
 }
 
 #[derive(Debug)]
-struct Pair {
+pub struct Pair {
 	key: String,
 	value: String,
 }
 
+impl fmt::Display for Pair {
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		writeln!(formatter, "{}={}", self.key, self.value)?;
+		Ok(())
+	}
+}
+
 #[derive(Debug)]
-struct Comment {
-	indicator: String,
-	value: String,
+pub struct Section {
+	name: String,
+	body: Vec<Item>,
+}
+
+impl fmt::Display for Section {
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		writeln!(formatter, "[{}]", self.name)?;
+		for item in &self.body {
+			item.fmt(formatter)?;
+		}
+		Ok(())
+	}
 }
