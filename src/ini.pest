@@ -1,4 +1,4 @@
-ini = { SOI ~ (pair | comment)* ~ section* ~ EOI }
+ini = { SOI ~ (pair | comment | NEWLINE)* ~ section* ~ EOI }
 WHITESPACE = _{ " " | "\t" }
 
 // section
@@ -8,9 +8,9 @@ char = { ASCII_ALPHANUMERIC | "." | "_" | "/" | " " }
 body = { (NEWLINE ~ (pair | comment)?)* }
 
 // key-value pair
-pair = { key ~ "=" ~ value ~ (NEWLINE | EOI) }
+pair = { key ~ "=" ~ value }
 key = @{ char+ }
 value = @{ (char | "=")* }
 
-comment = { indicator ~ value? ~ (NEWLINE | EOI) }
+comment = { indicator ~ value? }
 indicator = { "#" | ";" }
