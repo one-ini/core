@@ -30,9 +30,7 @@ struct INIParser;
 /// ```
 pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
 	match INIParser::parse(Rule::ini, contents) {
-		Ok(mut pairs) => {
-			return Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap())));
-		}
+		Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
 		Err(e) => Err(e),
 	}
 }
@@ -47,14 +45,11 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
-				let name = inner_rules.next().unwrap().as_str().to_string();
-				let body = inner_rules.next();
 				return Item::Section(Section {
-					name,
-					body: if body.is_none() {
-						vec![]
-					} else {
-						create_body(body.unwrap())
+					name: inner_rules.next().unwrap().as_str().to_string(),
+					body: match inner_rules.next() {
+						Some(pair) => create_body(pair),
+						_ => vec![],
 					},
 				});
 			}
@@ -137,7 +132,7 @@ impl fmt::Display for EditorConfigINIAST {
 			match item {
 				Item::Section(_section) => {
 					if wrote {
-						writeln!(formatter, "")?;
+						writeln!(formatter)?;
 					}
 				}
 				_ => (),
