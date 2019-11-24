@@ -9,9 +9,9 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
-use pest::error::Error;
-use pest::Parser;
-use std::{env, fmt};
+use pest::error::{Error, ErrorVariant};
+use pest::{Parser, Position};
+use std::{env, fmt, str};
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
@@ -24,15 +24,23 @@ struct INIParser;
 ///
 /// ```
 /// let contents = "root=true\n";
-/// let ast = editorconfig::parse(contents);
+/// let ast = editorconfig_ini::parse(contents.as_bytes()).unwrap();
 ///
-/// assert_eq!(ast.unwrap().to_string(), contents);
+/// assert_eq!(ast.to_string(), contents);
 /// ```
-pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
-	match INIParser::parse(Rule::ini, contents) {
-		Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
-		Err(e) => Err(e),
-	}
+pub fn parse(buffer: &[u8]) -> Result<EditorConfigINIAST, Error<Rule>> {
+	return match str::from_utf8(buffer) {
+		Ok(contents) => match INIParser::parse(Rule::ini, contents) {
+			Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
+			Err(e) => Err(e),
+		},
+		Err(e) => Err(Error::new_from_pos(
+			ErrorVariant::CustomError {
+				message: format!("Invalid UTF-8 sequence: {}", e),
+			},
+			Position::new("", 0).unwrap(),
+		)),
+	};
 }
 
 fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
@@ -79,7 +87,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// # Example
 ///
 /// ```
-/// use editorconfig::*;
+/// use editorconfig_ini::*;
 ///
 /// let ast = EditorConfigINIAST::new(vec![
 ///     Item::Pair(Pair {
@@ -116,6 +124,7 @@ pub struct EditorConfigINIAST {
 	pub body: Vec<Item>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl EditorConfigINIAST {
 	pub fn new(body: Vec<Item>) -> Self {
 		EditorConfigINIAST {
@@ -125,6 +134,7 @@ impl EditorConfigINIAST {
 	}
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for EditorConfigINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		let mut wrote = false;
@@ -153,6 +163,7 @@ pub enum Item {
 	Section(Section),
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Item {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		match self {
@@ -170,7 +181,7 @@ impl fmt::Display for Item {
 /// # Examples
 ///
 /// ```
-/// let comment = editorconfig::Comment {
+/// let comment = editorconfig_ini::Comment {
 ///     indicator: '#',
 ///     value: "octothorpe".to_string(),
 /// };
@@ -179,7 +190,7 @@ impl fmt::Display for Item {
 /// ```
 ///
 /// ```
-/// let comment = editorconfig::Comment {
+/// let comment = editorconfig_ini::Comment {
 ///     indicator: ';',
 ///     value: "semi-colon".to_string(),
 /// };
@@ -195,6 +206,7 @@ pub struct Comment {
 	pub value: String,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Comment {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "{} {}", self.indicator, self.value)?;
@@ -207,7 +219,7 @@ impl fmt::Display for Comment {
 /// # Example
 ///
 /// ```
-/// let pair = editorconfig::Pair {
+/// let pair = editorconfig_ini::Pair {
 ///     key: "left".to_string(),
 ///     value: "right".to_string(),
 /// };
@@ -222,6 +234,7 @@ pub struct Pair {
 	pub value: String,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "{}={}", self.key.trim(), self.value)?;
@@ -234,7 +247,7 @@ impl fmt::Display for Pair {
 /// # Example
 ///
 /// ```
-/// use editorconfig::*;
+/// use editorconfig_ini::*;
 ///
 /// let section = Section {
 ///     name: "header".to_string(),
@@ -261,6 +274,7 @@ pub struct Section {
 	pub body: Vec<Item>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Section {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "[{}]", self.name)?;

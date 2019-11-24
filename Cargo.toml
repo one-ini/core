@@ -1,12 +1,12 @@
 [package]
-name = "editorconfig"
+name = "editorconfig_ini"
 version = "0.1.0"
 authors = ["Jed Mao <jedmao@outlook.com>"]
-keywords = ["parser", "editorconfig", "ini"]
-categories = ["configuration", "parsing"]
+keywords = ["editorconfig", "ini", "parser", "ast"]
+categories = ["config", "parser-implementations", "wasm"]
 edition = "2018"
-# repository = "https://github.com/editorconfi/editorconfig-core-rust"
-# documentation = "https://docs.rs/editorconfig"
+repository = "https://github.com/editorconfi/editorconfig-ini-rust"
+documentation = "https://docs.rs/editorconfig_ini"
 license = "MIT"
 publish = false
 

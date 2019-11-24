@@ -1,5 +1,5 @@
 extern crate clap;
-extern crate editorconfig;
+extern crate editorconfig_ini;
 
 use clap::{App, Arg};
 use std::fs;
@@ -17,10 +17,10 @@ fn main() {
 		.get_matches();
 
 	let file_path = matches.value_of("file_path").unwrap();
-	let unparsed_file = fs::read_to_string(file_path).expect("cannot read file");
+	let unparsed_file = fs::read(file_path).expect("cannot read file");
 
 	println!(
 		"{}",
-		editorconfig::parse(&unparsed_file).unwrap().to_string()
+		editorconfig_ini::parse(&unparsed_file).unwrap().to_string()
 	);
 }
