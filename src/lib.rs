@@ -28,8 +28,8 @@ struct INIParser;
 ///
 /// assert_eq!(ast.to_string(), contents);
 /// ```
-pub fn parse(buffer: &[u8]) -> Result<EditorConfigINIAST, Error<Rule>> {
-	return match str::from_utf8(buffer) {
+pub fn parse(bytes: &[u8]) -> Result<EditorConfigINIAST, Error<Rule>> {
+	return match str::from_utf8(bytes) {
 		Ok(contents) => match INIParser::parse(Rule::ini, contents) {
 			Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
 			Err(e) => Err(e),
@@ -54,7 +54,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
 				return Item::Section(Section {
-					name: inner_rules.next().unwrap().as_str().to_string(),
+					name: String::from(inner_rules.next().unwrap().as_str()),
 					body: match inner_rules.next() {
 						Some(pair) => create_body(pair),
 						_ => vec![],
@@ -64,15 +64,15 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			Rule::pair => {
 				let mut inner_rules = p.into_inner();
 				return Item::Pair(Pair {
-					key: inner_rules.next().unwrap().as_str().to_string(),
-					value: inner_rules.next().unwrap().as_str().to_string(),
+					key: String::from(inner_rules.next().unwrap().as_str()),
+					value: String::from(inner_rules.next().unwrap().as_str()),
 				});
 			}
 			Rule::comment => {
 				let mut inner_rules = p.into_inner();
 				return Item::Comment(Comment {
 					indicator: inner_rules.next().unwrap().as_str().chars().nth(0).unwrap(),
-					value: inner_rules.next().unwrap().as_str().to_string(),
+					value: String::from(inner_rules.next().unwrap().as_str()),
 				});
 			}
 			_ => unreachable!(),
@@ -91,24 +91,24 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///
 /// let ast = EditorConfigINIAST::new(vec![
 ///     Item::Pair(Pair {
-///         key: "root".to_string(),
-///         value: "true".to_string(),
+///         key: String::from("root"),
+///         value: String::from("true"),
 ///     }),
 ///     Item::Section(Section {
-///         name: "one".to_string(),
+///         name: String::from("one"),
 ///         body: vec![
 ///             Item::Comment(Comment {
 ///                 indicator: '#',
-///                 value: "body1".to_string(),
+///                 value: String::from("body1"),
 ///             }),
 ///         ],
 ///     }),
 ///     Item::Section(Section {
-///         name: "two".to_string(),
+///         name: String::from("two"),
 ///         body: vec![
 ///             Item::Comment(Comment {
 ///                 indicator: ';',
-///                 value: "body2".to_string(),
+///                 value: String::from("body2"),
 ///             }),
 ///         ],
 ///     }),
@@ -119,17 +119,17 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 #[derive(Debug)]
 pub struct EditorConfigINIAST {
 	/// The version of the EditorConfig-INI parser.
-	version: String,
+	pub version: String,
 	/// Contains the _prelude_, followed by any number of sections.
 	pub body: Vec<Item>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl EditorConfigINIAST {
-	pub fn new(body: Vec<Item>) -> Self {
+	pub fn new<B: Into<Vec<Item>>>(body: B) -> Self {
 		EditorConfigINIAST {
-			version: env!("CARGO_PKG_VERSION").to_string(),
-			body,
+			version: String::from(env!("CARGO_PKG_VERSION")),
+			body: body.into(),
 		}
 	}
 }
@@ -183,7 +183,7 @@ impl fmt::Display for Item {
 /// ```
 /// let comment = editorconfig_ini::Comment {
 ///     indicator: '#',
-///     value: "octothorpe".to_string(),
+///     value: String::from("octothorpe"),
 /// };
 ///
 /// assert_eq!(comment.to_string(), "# octothorpe\n");
@@ -192,7 +192,7 @@ impl fmt::Display for Item {
 /// ```
 /// let comment = editorconfig_ini::Comment {
 ///     indicator: ';',
-///     value: "semi-colon".to_string(),
+///     value: String::from("semi-colon"),
 /// };
 ///
 /// assert_eq!(comment.to_string(), "; semi-colon\n");
@@ -220,8 +220,8 @@ impl fmt::Display for Comment {
 ///
 /// ```
 /// let pair = editorconfig_ini::Pair {
-///     key: "left".to_string(),
-///     value: "right".to_string(),
+///     key: String::from("left"),
+///     value: String::from("right"),
 /// };
 ///
 /// assert_eq!(pair.to_string(), "left=right\n");
@@ -250,15 +250,15 @@ impl fmt::Display for Pair {
 /// use editorconfig_ini::*;
 ///
 /// let section = Section {
-///     name: "header".to_string(),
+///     name: String::from("header"),
 ///     body: vec![
 ///         Item::Comment(Comment {
 ///             indicator: '#',
-///             value: "body".to_string(),
+///             value: String::from("body"),
 ///         }),
 ///         Item::Pair(Pair {
-///             key: "left".to_string(),
-///             value: "right".to_string(),
+///             key: String::from("left"),
+///             value: String::from("right"),
 ///         }),
 ///     ],
 /// };
@@ -282,5 +282,18 @@ impl fmt::Display for Section {
 			item.fmt(formatter)?;
 		}
 		Ok(())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use std::fs;
+
+	#[test]
+	fn it_works() {
+		let bytes = fs::read("fixtures/config.ini").unwrap();
+		let ast = parse(&bytes).unwrap();
+		assert_eq!(ast.to_string(), str::from_utf8(&bytes).unwrap());
 	}
 }
