@@ -68,7 +68,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			Rule::comment => {
 				let mut inner_rules = p.into_inner();
 				return Item::Comment(Comment {
-					indicator: inner_rules.next().unwrap().as_str().to_string(),
+					indicator: inner_rules.next().unwrap().as_str().chars().nth(0).unwrap(),
 					value: inner_rules.next().unwrap().as_str().to_string(),
 				});
 			}
@@ -95,7 +95,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///         name: "one".to_string(),
 ///         body: vec![
 ///             Item::Comment(Comment {
-///                 indicator: "#".to_string(),
+///                 indicator: '#',
 ///                 value: "body1".to_string(),
 ///             }),
 ///         ],
@@ -104,7 +104,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///         name: "two".to_string(),
 ///         body: vec![
 ///             Item::Comment(Comment {
-///                 indicator: ";".to_string(),
+///                 indicator: ';',
 ///                 value: "body2".to_string(),
 ///             }),
 ///         ],
@@ -115,7 +115,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// ```
 #[derive(Debug)]
 pub struct EditorConfigINIAST {
+	/// The version of the EditorConfig-INI parser.
 	version: String,
+	/// Contains the _prelude_, followed by any number of sections.
 	pub body: Vec<Item>,
 }
 
@@ -170,19 +172,31 @@ impl fmt::Display for Item {
 /// Starts with either a `#` or `;` comment indicator on a new or blank line,
 /// followed by any characters until it reaches a newline or the end of input.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// let comment = editorconfig::Comment {
-///     indicator: "#".to_string(),
-///     value: "hello".to_string(),
+///     indicator: '#',
+///     value: "octothorpe".to_string(),
 /// };
 ///
-/// assert_eq!(comment.to_string(), "# hello\n");
+/// assert_eq!(comment.to_string(), "# octothorpe\n");
+/// ```
+///
+/// ```
+/// let comment = editorconfig::Comment {
+///     indicator: ';',
+///     value: "semi-colon".to_string(),
+/// };
+///
+/// assert_eq!(comment.to_string(), "; semi-colon\n");
 /// ```
 #[derive(Debug)]
 pub struct Comment {
-	pub indicator: String,
+	/// The character that begins a comment. This may only be
+	/// an octothorpe (`#`) or a semi-colon (`;`).
+	pub indicator: char,
+	/// The value that follows the comment indicator.
 	pub value: String,
 }
 
@@ -207,7 +221,9 @@ impl fmt::Display for Comment {
 /// ```
 #[derive(Debug)]
 pub struct Pair {
+	/// Appears on the _left_ side of the assignment (`=`).
 	pub key: String,
+	/// Appears on the _right_ side of the assignment (`=`).
 	pub value: String,
 }
 
@@ -229,7 +245,7 @@ impl fmt::Display for Pair {
 ///     name: "header".to_string(),
 ///     body: vec![
 ///         Item::Comment(Comment {
-///             indicator: "#".to_string(),
+///             indicator: '#',
 ///             value: "body".to_string(),
 ///         }),
 ///         Item::Pair(Pair {
