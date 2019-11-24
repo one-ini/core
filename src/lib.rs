@@ -9,13 +9,22 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
+mod utils;
+
 use pest::error::{Error, ErrorVariant};
 use pest::{Parser, Position};
 use std::{env, fmt, str};
+use wasm_bindgen::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
 struct INIParser;
+
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
+// allocator.
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
@@ -28,6 +37,7 @@ struct INIParser;
 ///
 /// assert_eq!(ast.to_string(), contents);
 /// ```
+#[wasm_bindgen]
 pub fn parse(bytes: &[u8]) -> Result<EditorConfigINIAST, Error<Rule>> {
 	return match str::from_utf8(bytes) {
 		Ok(contents) => match INIParser::parse(Rule::ini, contents) {
