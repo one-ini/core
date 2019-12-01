@@ -9,22 +9,13 @@ extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
-mod utils;
-
-use pest::error::{Error, ErrorVariant};
-use pest::{Parser, Position};
+use pest::error::Error;
+use pest::Parser;
 use std::{env, fmt, str};
-use wasm_bindgen::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
 struct INIParser;
-
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
@@ -32,24 +23,15 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 /// # Example
 ///
 /// ```
-/// let contents = "root=true\n";
-/// let ast = editorconfig_ini::parse(contents.as_bytes()).unwrap();
+/// let contents = String::from("root=true\n");
+/// let ast = editorconfig_ini::parse(&contents).unwrap();
 ///
 /// assert_eq!(ast.to_string(), contents);
 /// ```
-#[wasm_bindgen]
-pub fn parse(bytes: &[u8]) -> Result<EditorConfigINIAST, Error<Rule>> {
-	return match str::from_utf8(bytes) {
-		Ok(contents) => match INIParser::parse(Rule::ini, contents) {
-			Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
-			Err(e) => Err(e),
-		},
-		Err(e) => Err(Error::new_from_pos(
-			ErrorVariant::CustomError {
-				message: format!("Invalid UTF-8 sequence: {}", e),
-			},
-			Position::new("", 0).unwrap(),
-		)),
+pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
+	return match INIParser::parse(Rule::ini, contents) {
+		Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
+		Err(e) => Err(e),
 	};
 }
 
@@ -134,7 +116,6 @@ pub struct EditorConfigINIAST {
 	pub body: Vec<Item>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl EditorConfigINIAST {
 	pub fn new<B: Into<Vec<Item>>>(body: B) -> Self {
 		EditorConfigINIAST {
@@ -144,7 +125,6 @@ impl EditorConfigINIAST {
 	}
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for EditorConfigINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		let mut wrote = false;
@@ -173,7 +153,6 @@ pub enum Item {
 	Section(Section),
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Item {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		match self {
@@ -216,7 +195,6 @@ pub struct Comment {
 	pub value: String,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Comment {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "{} {}", self.indicator, self.value)?;
@@ -244,10 +222,9 @@ pub struct Pair {
 	pub value: String,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{}={}", self.key.trim(), self.value)?;
+		writeln!(formatter, "{}={}", self.key.trim(), self.value.trim())?;
 		Ok(())
 	}
 }
@@ -284,7 +261,6 @@ pub struct Section {
 	pub body: Vec<Item>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl fmt::Display for Section {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		writeln!(formatter, "[{}]", self.name)?;
@@ -302,8 +278,8 @@ mod tests {
 
 	#[test]
 	fn it_works() {
-		let bytes = fs::read("fixtures/config.ini").unwrap();
-		let ast = parse(&bytes).unwrap();
-		assert_eq!(ast.to_string(), str::from_utf8(&bytes).unwrap());
+		let contents = fs::read_to_string("tests/fixtures/config.ini").unwrap();
+		let ast = parse(&contents).unwrap();
+		assert_eq!(ast.to_string(), contents);
 	}
 }
