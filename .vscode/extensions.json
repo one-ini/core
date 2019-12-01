@@ -1,6 +1,7 @@
 {
 	"recommendations": [
 		"be5invis.toml",
+		"davidanson.vscode-markdownlint",
 		"rust-lang.rust",
 		"serayuzgur.crates",
 		"xoronic.pestfile"
