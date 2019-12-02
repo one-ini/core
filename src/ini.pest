@@ -12,8 +12,8 @@ body = { (pair | comment)* }
 // a name must end with a closing bracket followed by EOL
 name = @{ (!("]" ~ eol) ~ char)+ }
 // a key may not begin with an opening bracket and my not contain an equal sign
-key = @{ (!("=" | "[") ~ char) ~ (!"=" ~ char)* }
-value = @{ char+ }
+key = @{ (!("=" | "[") ~ char) ~ (!"=" ~ char){0, 49} }
+value = @{ char{1, 255} }
 
 // atomic primitives
 char = { !eol ~ ANY }
