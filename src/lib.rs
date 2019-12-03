@@ -45,8 +45,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
+				let header = String::from(inner_rules.next().unwrap().as_str());
 				return Item::Section(Section {
-					name: String::from(inner_rules.next().unwrap().as_str()),
+					name: header[1..(header.len() - 1)].to_string(),
 					body: match inner_rules.next() {
 						Some(pair) => create_body(pair),
 						_ => vec![],

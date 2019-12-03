@@ -1,17 +1,25 @@
-ini = { SOI ~ bom? ~ (pair | comment | NEWLINE)* ~ section* ~ EOI }
+ini = { SOI ~ bom? ~ (blank | pair | comment)* ~ section* }
+
+// lines
+blank = _{ "" ~ NEWLINE }
+pair = { key ~ "=" ~ value ~ eol }
+comment = { indicator ~ value? ~ eol }
+
+// sections
+section = { header ~ eol ~ body }
+body = { (blank | pair | comment)* }
+
+// tokens
+// a name must end with a closing bracket followed by EOL
+header = @{ "[" ~ (!("]" ~ (char | eol)) ~ char)+ ~ "]" }
+// a key may not begin with an opening bracket and may not contain an equal sign
+key = @{ (!("=" | "[") ~ char) ~ (!"=" ~ char)* }
+value = @{ char+ }
+
+// atomic primitives
 bom = _{ "\u{feff}" }
-WHITESPACE = _{ "\t" }
-
-// section
-section = { " "* ~ "[" ~ name ~ "]" ~ " "* ~ body }
-name = @{ char+ }
-char = { ASCII_ALPHANUMERIC | "." | "_" | "/" | " " | ";" | "#" | "\\" }
-body = { (NEWLINE ~ (pair | comment)?)* }
-
-// key-value pair
-pair = { key ~ "=" ~ value }
-key = @{ char{1,50} }
-value = @{ (char | "="){0,255} }
-
-comment = { indicator ~ " "* ~ value? }
 indicator = { "#" | ";" }
+char = { !eol ~ ANY }
+eol = _{ NEWLINE | EOI }
+
+WHITESPACE = _{ " " | "\t" }

@@ -89,77 +89,15 @@ fn escaped_comment_indicator_in_section_name() {
 
 #[test]
 fn removes_bom() {
-	compare("\u{feff}a=b", "a=b\n");
+	let utf8_bom: [u8; 3] = [0xef, 0xbb, 0xbf];
+	let contents = format!("{}a=b", str::from_utf8(&utf8_bom).unwrap());
+	compare(contents, "a=b\n");
 }
 
 #[test]
 fn crlf_line_separators() {
 	compare("[a]\r\nb=c", "[a]\nb=c\n");
 }
-
-// Test max property name and values
-
-#[test]
-fn max_pair_key_limit() {
-	let limit = 50;
-	let mut left = String::with_capacity(limit + 2);
-	left.push_str(&"a".repeat(limit).to_string());
-	left.push('=');
-	let mut right = left.clone();
-	right.push('\n');
-
-	compare(&left, &right);
-
-	left.pop();
-	left.push_str("x=");
-
-	match parse(&left) {
-		Ok(_) => unreachable!(),
-		Err(_) => (),
-	}
-}
-
-#[test]
-fn max_pair_value_limit() {
-	let limit = 255;
-	let mut contents = String::with_capacity(limit + 3);
-	contents.push_str("a=");
-	contents.push_str(&"b".repeat(limit).to_string());
-
-	let mut right = contents.clone();
-	right.push('\n');
-
-	compare(&contents, &right);
-
-	contents.push('b');
-
-	match parse(&contents) {
-		Ok(_) => unreachable!(),
-		Err(_) => (),
-	}
-}
-
-// #[test]
-// fn max_section_name_limit() {
-// 	let limit = 4096;
-// 	let mut contents = String::with_capacity(limit + 3);
-// 	contents.push('[');
-// 	contents.push_str(&"a".repeat(limit).to_string());
-// 	contents.push_str("]\n");
-
-// 	compare(&contents, &contents);
-
-// 	contents.pop();
-// 	contents.pop();
-// 	contents.push_str("a]\n");
-
-// 	compare(&contents, &contents);
-
-// 	// match parse(&contents) {
-// 	// 	Ok(_) => unreachable!(),
-// 	// 	Err(_) => (),
-// 	// }
-// }
 
 /// Parse contents on the left and compare with expected output on the right.
 fn compare<S: Into<String>>(contents: S, expected: &str) {
