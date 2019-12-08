@@ -11,11 +11,19 @@ extern crate pest_derive;
 
 use pest::error::Error;
 use pest::Parser;
+use serde::{Deserialize, Serialize};
 use std::{env, fmt, str};
+use wasm_bindgen::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
 struct INIParser;
+
+#[wasm_bindgen]
+pub fn parse_to_json(contents: &str) -> JsValue {
+	let ast = parse(&contents).unwrap();
+	return JsValue::from_serde(&ast).unwrap();
+}
 
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
@@ -108,12 +116,20 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// ]);
 ///
 /// assert_eq!(ast.to_string(), "root=true\n\n[one]\n# body1\n\n[two]\n; body2\n");
+///
+/// let serialized = serde_json::to_string(&ast).unwrap();
+/// let expected = "{\"version\":\"0.1.0\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\"body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\"body2\"}]}]}";
+/// assert_eq!(serialized, expected);
+///
+/// let deserialized: EditorConfigINIAST = serde_json::from_str(&serialized).unwrap();
+/// assert_eq!(serde_json::to_string(&deserialized).unwrap(), expected);
 /// ```
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EditorConfigINIAST {
 	/// The version of the EditorConfig-INI parser.
 	pub version: String,
 	/// Contains the _prelude_, followed by any number of sections.
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub body: Vec<Item>,
 }
 
@@ -147,7 +163,28 @@ impl fmt::Display for EditorConfigINIAST {
 
 /// Any number of items may be used within a prelude or
 /// [section](struct.section.html) body.
-#[derive(Debug)]
+///
+/// # Serializing & Deserializing
+///
+/// ```
+/// use editorconfig_ini::{Comment,Item};
+///
+/// let item = Item::Comment(Comment {
+///     indicator: '#',
+///     value: String::from("octothorpe"),
+/// });
+/// let serialized = serde_json::to_string(&item).unwrap();
+/// assert_eq!(
+///     serialized,
+///     "{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\"octothorpe\"}",
+/// );
+///
+/// let deserialized: Comment = serde_json::from_str(&serialized).unwrap();
+/// assert_eq!(deserialized.indicator, '#');
+/// assert_eq!(deserialized.value, "octothorpe");
+/// ```
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub enum Item {
 	Comment(Comment),
 	Pair(Pair),
@@ -187,7 +224,25 @@ impl fmt::Display for Item {
 ///
 /// assert_eq!(comment.to_string(), "; semi-colon\n");
 /// ```
-#[derive(Debug)]
+///
+/// # Serializing & Deserializing
+///
+/// ```
+/// let comment = editorconfig_ini::Comment {
+///     indicator: '#',
+///     value: String::from("octothorpe"),
+/// };
+/// let serialized = serde_json::to_string(&comment).unwrap();
+/// let deserialized: editorconfig_ini::Comment = serde_json::from_str(&serialized).unwrap();
+///
+/// assert_eq!(
+///     serialized,
+///     "{\"indicator\":\"#\",\"value\":\"octothorpe\"}",
+/// );
+/// assert_eq!(deserialized.indicator, '#');
+/// assert_eq!(deserialized.value, "octothorpe");
+/// ```
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Comment {
 	/// The character that begins a comment. This may only be
 	/// an octothorpe (`#`) or a semi-colon (`;`).
@@ -195,6 +250,38 @@ pub struct Comment {
 	/// The value that follows the comment indicator.
 	pub value: String,
 }
+
+/// Serializes a comment as a JSON string.
+///
+/// # Example
+///
+/// ```
+/// let comment = editorconfig_ini::Comment {
+///     indicator: '#',
+///     value: String::from("octothorpe"),
+/// };
+/// let serialized = serde_json::to_string(&comment).unwrap();
+/// let deserialized: editorconfig_ini::Comment = serde_json::from_str(&serialized).unwrap();
+///
+/// assert_eq!(
+///     serialized,
+///     "{\"indicator\":\"#\",\"value\":\"octothorpe\"}",
+/// );
+/// assert_eq!(deserialized.indicator, '#');
+/// assert_eq!(deserialized.value, "octothorpe");
+/// ```
+// impl Serialize for Comment {
+// 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+// 	where
+// 		S: Serializer,
+// 	{
+// 		let mut state = serializer.serialize_struct("Comment", 3)?;
+// 		// state.serialize_field("type", "comment")?;
+// 		state.serialize_field("indicator", &self.indicator)?;
+// 		state.serialize_field("value", &self.value)?;
+// 		return state.end();
+// 	}
+// }
 
 impl fmt::Display for Comment {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -215,7 +302,7 @@ impl fmt::Display for Comment {
 ///
 /// assert_eq!(pair.to_string(), "left=right\n");
 /// ```
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Pair {
 	/// Appears on the _left_ side of the assignment (`=`).
 	pub key: String,
@@ -253,12 +340,13 @@ impl fmt::Display for Pair {
 ///
 /// assert_eq!(section.to_string(), "[header]\n# body\nleft=right\n");
 /// ```
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Section {
 	/// The section header's name (i.e., the part between `[` and `]`).,
 	pub name: String,
 	/// Contains any number of items, which may only consist of
 	/// comments and pairs.
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub body: Vec<Item>,
 }
 
