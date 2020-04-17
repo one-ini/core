@@ -1,13 +1,13 @@
 [package]
-name = "editorconfig_ini"
+name = "one_ini"
 version = "0.1.0"
 description = "Parse EditorConfig-INI file contents into AST"
-authors = ["Jed Mao <jedmao@outlook.com>"]
-keywords = ["editorconfig", "ini", "parser", "ast"]
+authors = ["Jed Mao <jedmao@outlook.com>", "Florian Breisch <florian.breisch@mindkeeper.solutions>"]
+keywords = ["ini", "parser", "ast"]
 categories = ["config", "parser-implementations", "wasm"]
 edition = "2018"
-repository = "https://github.com/editorconfi/editorconfig-ini-rust"
-documentation = "https://docs.rs/editorconfig_ini"
+repository = "https://github.com/florianb/one-ini"
+documentation = "https://docs.rs/one_ini"
 license = "MIT"
 publish = false
 
