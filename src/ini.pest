@@ -10,8 +10,9 @@ section = { header ~ eol ~ body }
 body = { (blank | pair | comment)* }
 
 // tokens
-// a name must end with a closing bracket followed by EOL
-header = @{ "[" ~ (!("]" ~ (char | eol)) ~ char)+ ~ "]" }
+// a name must end with a closing bracket followed by optional whitespace and EOL
+header = @{ "[" ~ (!header_end ~ char)+ ~ "]" }
+header_end = !{ "]" ~ eol }
 // a key may not begin with an opening bracket and may not contain an equal sign
 key = @{ (!("=" | "[") ~ char) ~ (!"=" ~ char)* }
 value = @{ char+ }
