@@ -51,6 +51,11 @@ fn trims_spaces_after_section_name() {
 }
 
 #[test]
+fn handles_nested_section_braces() {
+	compare("[[a]]", "[[a]]\n");
+}
+
+#[test]
 fn trims_spaces_before_middle_pair() {
 	compare("a=b\n  c=d\ne=f", "a=b\nc=d\ne=f\n");
 }
