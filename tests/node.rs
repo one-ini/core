@@ -1,4 +1,4 @@
-//! Test suite for the Web and headless browsers.
+//! Test suite for Node.js
 
 #![cfg(test)]
 #![cfg(target_arch = "wasm32")]
@@ -8,8 +8,6 @@ use std::assert_eq;
 
 use editorconfig_ini::parse_to_uint32array;
 use wasm_bindgen_test::*;
-
-wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 fn uint32array() {
