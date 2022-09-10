@@ -53,9 +53,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
-				let header = String::from(inner_rules.next().unwrap().as_str());
+				let header = inner_rules.next().unwrap().into_inner().next().unwrap();
 				return Item::Section(Section {
-					name: header[1..(header.len() - 1)].to_string(),
+					name: String::from(header.as_str()),
 					body: match inner_rules.next() {
 						Some(pair) => create_body(pair),
 						_ => vec![],
@@ -312,7 +312,7 @@ pub struct Pair {
 
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{}={}", self.key.trim(), self.value.trim())?;
+		writeln!(formatter, "{}={}", self.key, self.value)?;
 		Ok(())
 	}
 }
