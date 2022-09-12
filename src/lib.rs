@@ -25,6 +25,100 @@ pub fn parse_to_json(contents: &str) -> JsValue {
 	return JsValue::from_serde(&ast).unwrap();
 }
 
+#[wasm_bindgen]
+pub fn version() -> String {
+	String::from(env!("CARGO_PKG_VERSION"))
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone)]
+#[repr(u32)]
+pub enum TokenTypes {
+	Key,
+	Value,
+	Section,
+	CommentIndicator,
+	CommentValue,
+}
+
+#[wasm_bindgen]
+pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
+	let input = str::from_utf8(contents)?;
+	match parse_to_vec(input) {
+		Ok(res) => Ok(res),
+		Err(er) => Err(JsError::from(er)),
+	}
+}
+
+/// Parses
+/// [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
+/// contents into an array of unsigned ints.  Each token consists of three
+/// ints, a type from the TokenTypes enum, a starting byte offset, and an
+/// ending byte offset.  It is up to the caller to reconstruct an AST, and
+/// pull UTF8-encoding strings out of the input buffer.
+///
+/// # Example
+///
+/// ```
+/// let contents = String::from("root=true\n");
+/// let results = editorconfig_ini::parse_to_vec(&contents).unwrap();
+/// assert_eq!(results, vec![0, 0, 4, 1, 5, 9]);
+/// ```
+pub fn parse_to_vec(contents: &str) -> Result<Vec<u32>, Error<Rule>> {
+	let mut parsed = INIParser::parse(Rule::ini, contents)?;
+	// 300 is slightly larger than the max size found in the test suite, and
+	// should be larger than most normal .editorconfig files, to avoid a few
+	// allocations.
+	let mut results = Vec::with_capacity(300);
+
+	fill_vec(parsed.next().unwrap(), &mut results);
+	Ok(results)
+}
+
+fn push_token(typ: TokenTypes, pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
+	let span = pair.as_span();
+	results.push(typ as u32);
+	results.push(span.start() as u32);
+	results.push(span.end() as u32);
+}
+
+fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
+	let children = pair.into_inner().filter(|p| match p.as_rule() {
+		Rule::EOI => false,
+		_ => true,
+	});
+	for child in children {
+		match child.as_rule() {
+			Rule::section => {
+				let mut inner_rules = child.into_inner();
+				let mut header = inner_rules.next().unwrap().into_inner();
+				push_token(TokenTypes::Section, header.next().unwrap(), results);
+				// Body always exists, even if empty
+				fill_vec(inner_rules.next().unwrap(), results);
+			}
+			Rule::pair => {
+				let mut inner_rules = child.into_inner();
+				push_token(TokenTypes::Key, inner_rules.next().unwrap(), results);
+				push_token(TokenTypes::Value, inner_rules.next().unwrap(), results);
+			}
+			Rule::comment => {
+				let mut inner_rules = child.into_inner();
+				push_token(
+					TokenTypes::CommentIndicator,
+					inner_rules.next().unwrap(),
+					results,
+				);
+				push_token(
+					TokenTypes::CommentValue,
+					inner_rules.next().unwrap(),
+					results,
+				);
+			}
+			_ => unreachable!(),
+		}
+	}
+}
+
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 ///
@@ -53,9 +147,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
-				let header = String::from(inner_rules.next().unwrap().as_str());
+				let header = inner_rules.next().unwrap().into_inner().next().unwrap();
 				return Item::Section(Section {
-					name: header[1..(header.len() - 1)].to_string(),
+					name: String::from(header.as_str()),
 					body: match inner_rules.next() {
 						Some(pair) => create_body(pair),
 						_ => vec![],
@@ -312,7 +406,7 @@ pub struct Pair {
 
 impl fmt::Display for Pair {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{}={}", self.key.trim(), self.value.trim())?;
+		writeln!(formatter, "{}={}", self.key, self.value)?;
 		Ok(())
 	}
 }
