@@ -61,7 +61,7 @@ pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
 ///
 /// ```
 /// let contents = String::from("root=true\n");
-/// let results = editorconfig_ini::parse_to_vec(&contents).unwrap();
+/// let results = one_ini::parse_to_vec(&contents).unwrap();
 /// assert_eq!(results, vec![0, 0, 4, 1, 5, 9]);
 /// ```
 pub fn parse_to_vec(contents: &str) -> Result<Vec<u32>, Error<Rule>> {
@@ -126,13 +126,13 @@ fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
 ///
 /// ```
 /// let contents = String::from("root=true\n");
-/// let ast = editorconfig_ini::parse(&contents).unwrap();
+/// let ast = one_ini::parse(&contents).unwrap();
 ///
 /// assert_eq!(ast.to_string(), contents);
 /// ```
-pub fn parse(contents: &str) -> Result<EditorConfigINIAST, Error<Rule>> {
+pub fn parse(contents: &str) -> Result<OneINIAST, Error<Rule>> {
 	return match INIParser::parse(Rule::ini, contents) {
-		Ok(mut pairs) => Ok(EditorConfigINIAST::new(create_body(pairs.next().unwrap()))),
+		Ok(mut pairs) => Ok(OneINIAST::new(create_body(pairs.next().unwrap()))),
 		Err(e) => Err(e),
 	};
 }
@@ -182,9 +182,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// # Example
 ///
 /// ```
-/// use editorconfig_ini::*;
+/// use one_ini::*;
 ///
-/// let ast = EditorConfigINIAST::new(vec![
+/// let ast = OneINIAST::new(vec![
 ///     Item::Pair(Pair {
 ///         key: String::from("root"),
 ///         value: String::from("true"),
@@ -215,11 +215,11 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// let expected = "{\"version\":\"0.1.0\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\"body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\"body2\"}]}]}";
 /// assert_eq!(serialized, expected);
 ///
-/// let deserialized: EditorConfigINIAST = serde_json::from_str(&serialized).unwrap();
+/// let deserialized: OneINIAST = serde_json::from_str(&serialized).unwrap();
 /// assert_eq!(serde_json::to_string(&deserialized).unwrap(), expected);
 /// ```
 #[derive(Serialize, Deserialize, Debug)]
-pub struct EditorConfigINIAST {
+pub struct OneINIAST {
 	/// The version of the EditorConfig-INI parser.
 	pub version: String,
 	/// Contains the _prelude_, followed by any number of sections.
@@ -227,16 +227,16 @@ pub struct EditorConfigINIAST {
 	pub body: Vec<Item>,
 }
 
-impl EditorConfigINIAST {
+impl OneINIAST {
 	pub fn new<B: Into<Vec<Item>>>(body: B) -> Self {
-		EditorConfigINIAST {
+		OneINIAST {
 			version: String::from(env!("CARGO_PKG_VERSION")),
 			body: body.into(),
 		}
 	}
 }
 
-impl fmt::Display for EditorConfigINIAST {
+impl fmt::Display for OneINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		let mut wrote = false;
 		for item in &self.body {
@@ -261,7 +261,7 @@ impl fmt::Display for EditorConfigINIAST {
 /// # Serializing & Deserializing
 ///
 /// ```
-/// use editorconfig_ini::{Comment,Item};
+/// use one_ini::{Comment,Item};
 ///
 /// let item = Item::Comment(Comment {
 ///     indicator: '#',
@@ -302,7 +302,7 @@ impl fmt::Display for Item {
 /// # Examples
 ///
 /// ```
-/// let comment = editorconfig_ini::Comment {
+/// let comment = one_ini::Comment {
 ///     indicator: '#',
 ///     value: String::from("octothorpe"),
 /// };
@@ -311,7 +311,7 @@ impl fmt::Display for Item {
 /// ```
 ///
 /// ```
-/// let comment = editorconfig_ini::Comment {
+/// let comment = one_ini::Comment {
 ///     indicator: ';',
 ///     value: String::from("semi-colon"),
 /// };
@@ -322,12 +322,12 @@ impl fmt::Display for Item {
 /// # Serializing & Deserializing
 ///
 /// ```
-/// let comment = editorconfig_ini::Comment {
+/// let comment = one_ini::Comment {
 ///     indicator: '#',
 ///     value: String::from("octothorpe"),
 /// };
 /// let serialized = serde_json::to_string(&comment).unwrap();
-/// let deserialized: editorconfig_ini::Comment = serde_json::from_str(&serialized).unwrap();
+/// let deserialized: one_ini::Comment = serde_json::from_str(&serialized).unwrap();
 ///
 /// assert_eq!(
 ///     serialized,
@@ -350,12 +350,12 @@ pub struct Comment {
 /// # Example
 ///
 /// ```
-/// let comment = editorconfig_ini::Comment {
+/// let comment = one_ini::Comment {
 ///     indicator: '#',
 ///     value: String::from("octothorpe"),
 /// };
 /// let serialized = serde_json::to_string(&comment).unwrap();
-/// let deserialized: editorconfig_ini::Comment = serde_json::from_str(&serialized).unwrap();
+/// let deserialized: one_ini::Comment = serde_json::from_str(&serialized).unwrap();
 ///
 /// assert_eq!(
 ///     serialized,
@@ -389,7 +389,7 @@ impl fmt::Display for Comment {
 /// # Example
 ///
 /// ```
-/// let pair = editorconfig_ini::Pair {
+/// let pair = one_ini::Pair {
 ///     key: String::from("left"),
 ///     value: String::from("right"),
 /// };
@@ -416,7 +416,7 @@ impl fmt::Display for Pair {
 /// # Example
 ///
 /// ```
-/// use editorconfig_ini::*;
+/// use one_ini::*;
 ///
 /// let section = Section {
 ///     name: String::from("header"),

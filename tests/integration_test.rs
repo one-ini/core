@@ -1,6 +1,6 @@
 //! Integration test suite for the parse function.
 
-use editorconfig_ini::{parse, parse_to_vec, TokenTypes};
+use one_ini::{parse, parse_to_vec, TokenTypes};
 use std::str;
 
 // Whitespace tests
