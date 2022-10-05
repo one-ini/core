@@ -1,4 +1,8 @@
-# EditorConfig INI
+# One INI
+
+The core implementation of an AST based, idiomatic INI parser which aims to provide an easy to implement and consistent INI-standard.
+
+This reference implementation is provided as Rust-library and WASM-package.
 
 <!-- markdownlint-disable -->
 
@@ -8,7 +12,7 @@
 
 <!-- markdownlint-disable commands-show-output -->
 
-Parser for the [EditorConfig INI file format specification](https://editorconfig-specification.readthedocs.io/en/latest/#id3).
+The work on this project started with the search for an universal parser for the [EditorConfig INI file format specification](https://editorconfig-specification.readthedocs.io/en/latest/#id3).
 
 ## WASM
 
