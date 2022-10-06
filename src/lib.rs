@@ -22,7 +22,8 @@ struct INIParser;
 #[wasm_bindgen]
 pub fn parse_to_json(contents: &str) -> JsValue {
 	let ast = parse(&contents).unwrap();
-	return JsValue::from_serde(&ast).unwrap();
+	return serde_wasm_bindgen::to_value(&ast).unwrap();
+	//return JsValue::from_serde(&ast).unwrap();
 }
 
 #[wasm_bindgen]
