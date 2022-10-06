@@ -1,5 +1,5 @@
 [package]
-authors = ["Jed Mao <jedmao@outlook.com>", "Joe Hildebrand <joe-github@cursive.net>"]
+authors = ["Jed Mao <jedmao@outlook.com>", "Joe Hildebrand <joe-github@cursive.net>", "Florian Neumann <florian.neumann@mindkeeper.solutions>"]
 categories = ["config", "parser-implementations", "wasm"]
 description = "Parse EditorConfig-INI file contents into AST"
 documentation = "https://docs.rs/one-ini"
