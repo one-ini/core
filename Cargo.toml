@@ -35,8 +35,10 @@ console_error_panic_hook = {version = "0.1.7", optional = true}
 # compared to the default allocator's ~10K. It is slower than the default
 # allocator, however.
 #
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
-wee_alloc = {version = "0.4.5", optional = true}
+wee_alloc = {version = "0.4.5"}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.33"

@@ -5,6 +5,13 @@
 //! file contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree),
 //! which can then be modified and/or serialized.
 
+// Enable WeeAlloc as global memory allocator for the WASM target
+#[cfg(target_arch = "wasm32")]
+extern crate wee_alloc;
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
