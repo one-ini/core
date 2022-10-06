@@ -8,7 +8,7 @@ keywords = ["editorconfig", "ini", "parser", "ast"]
 license = "MIT"
 name = "one-ini"
 publish = false
-repository = "https://github.com/florianb/one-ini"
+repository = "https://github.com/one-ini/core"
 version = "0.1.0"
 
 [lib]
