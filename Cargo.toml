@@ -12,7 +12,7 @@ repository = "https://github.com/one-ini/core"
 version = "0.1.0"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["lib"]
 
 [dependencies]
 pest = "2.4.0"
