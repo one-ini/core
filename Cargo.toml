@@ -1,14 +1,14 @@
 [package]
-authors = ["Jed Mao <jedmao@outlook.com>", "Joe Hildebrand <joe-github@cursive.net>"]
+authors = ["Jed Mao <jedmao@outlook.com>", "Joe Hildebrand <joe-github@cursive.net>", "Florian Neumann <florian.neumann@mindkeeper.solutions>"]
 categories = ["config", "parser-implementations", "wasm"]
 description = "Parse EditorConfig-INI file contents into AST"
 documentation = "https://docs.rs/one-ini"
-edition = "2018"
+edition = "2021"
 keywords = ["editorconfig", "ini", "parser", "ast"]
 license = "MIT"
 name = "one-ini"
 publish = false
-repository = "https://github.com/florianb/one-ini"
+repository = "https://github.com/one-ini/core"
 version = "0.1.0"
 
 [lib]
@@ -20,6 +20,9 @@ default = ["console_error_panic_hook"]
 [dependencies]
 pest = "2.4.0"
 pest_derive = "2.4.0"
+serde = {version = "1.0", features = ["derive"]}
+serde-wasm-bindgen = "0.4"
+serde_json = "1.0"
 wasm-bindgen = {version = "0.2.83", features = ["serde-serialize"]}
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
@@ -28,15 +31,14 @@ wasm-bindgen = {version = "0.2.83", features = ["serde-serialize"]}
 # code size when deploying.
 console_error_panic_hook = {version = "0.1.7", optional = true}
 
-serde = {version = "1.0.145", features = ["derive"]}
-serde_json = "1.0.85"
-
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. It is slower than the default
 # allocator, however.
 #
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
-wee_alloc = {version = "0.4.5", optional = true}
+wee_alloc = {version = "0.4.5"}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.33"

@@ -5,6 +5,13 @@
 //! file contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree),
 //! which can then be modified and/or serialized.
 
+// Enable WeeAlloc as global memory allocator for the WASM target
+#[cfg(target_arch = "wasm32")]
+extern crate wee_alloc;
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -22,7 +29,8 @@ struct INIParser;
 #[wasm_bindgen]
 pub fn parse_to_json(contents: &str) -> JsValue {
 	let ast = parse(&contents).unwrap();
-	return JsValue::from_serde(&ast).unwrap();
+	return serde_wasm_bindgen::to_value(&ast).unwrap();
+	//return JsValue::from_serde(&ast).unwrap();
 }
 
 #[wasm_bindgen]
