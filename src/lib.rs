@@ -161,7 +161,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// ```
 /// use one_ini::*;
 ///
-/// let ast = OneINIAST::new(vec![
+/// let ast = OneIniAst::new(vec![
 ///     Item::Pair(Pair {
 ///         key: String::from("root"),
 ///         value: String::from("true"),
@@ -192,7 +192,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// let expected = "{\"version\":\"0.1.0\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\"body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\"body2\"}]}]}";
 /// assert_eq!(serialized, expected);
 ///
-/// let deserialized: OneINIAST = serde_json::from_str(&serialized).unwrap();
+/// let deserialized: OneIniAst = serde_json::from_str(&serialized).unwrap();
 /// assert_eq!(serde_json::to_string(&deserialized).unwrap(), expected);
 /// ```
 #[derive(Serialize, Deserialize, Debug)]
