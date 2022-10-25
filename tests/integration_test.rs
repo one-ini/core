@@ -64,14 +64,14 @@ fn trims_spaces_before_middle_pair() {
 
 #[test]
 fn comment_indicator_in_section_before_pair() {
-	compare("[a]\n;b\nc=d", "[a]\n; b\nc=d\n");
-	compare("[a]\n#b\nc=d", "[a]\n# b\nc=d\n");
+	compare("[a]\n;b\nc=d", "[a]\n;b\nc=d\n");
+	compare("[a]\n#b\nc=d", "[a]\n#b\nc=d\n");
 }
 
 #[test]
 fn comment_indicator_in_section_between_pairs() {
-	compare("[a]\nb=c\n;d\ne=f", "[a]\nb=c\n; d\ne=f\n");
-	compare("[a]\nb=c\n#d\ne=f", "[a]\nb=c\n# d\ne=f\n");
+	compare("[a]\nb=c\n;d\ne=f", "[a]\nb=c\n;d\ne=f\n");
+	compare("[a]\nb=c\n#d\ne=f", "[a]\nb=c\n#d\ne=f\n");
 }
 
 #[test]

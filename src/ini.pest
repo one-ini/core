@@ -3,7 +3,8 @@ ini = { SOI ~ bom? ~ (blank | pair | comment)* ~ section* }
 // lines
 blank = _{ "" ~ NEWLINE }
 pair = { key ~ "=" ~ value ~ eol }
-comment = { indicator ~ value? ~ eol }
+comment = ${ indicator ~ comment_value ~ eol }
+comment_value = ${ char* }
 
 // sections
 section = { header ~ eol ~ body }

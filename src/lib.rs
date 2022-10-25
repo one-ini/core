@@ -173,8 +173,9 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			}
 			Rule::comment => {
 				let mut inner_rules = p.into_inner();
+				let ind = inner_rules.next().unwrap().as_str();
 				return Item::Comment(Comment {
-					indicator: inner_rules.next().unwrap().as_str().chars().nth(0).unwrap(),
+					indicator: ind.chars().next().unwrap(),
 					value: String::from(inner_rules.next().unwrap().as_str()),
 				});
 			}
@@ -202,7 +203,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///         body: vec![
 ///             Item::Comment(Comment {
 ///                 indicator: '#',
-///                 value: String::from("body1"),
+///                 value: String::from(" body1"),
 ///             }),
 ///         ],
 ///     }),
@@ -211,7 +212,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 ///         body: vec![
 ///             Item::Comment(Comment {
 ///                 indicator: ';',
-///                 value: String::from("body2"),
+///                 value: String::from(" body2"),
 ///             }),
 ///         ],
 ///     }),
@@ -220,7 +221,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// assert_eq!(ast.to_string(), "root=true\n\n[one]\n# body1\n\n[two]\n; body2\n");
 ///
 /// let serialized = serde_json::to_string(&ast).unwrap();
-/// let expected = "{\"version\":\"0.1.0\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\"body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\"body2\"}]}]}";
+/// let expected = "{\"version\":\"0.1.0\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\" body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\" body2\"}]}]}";
 /// assert_eq!(serialized, expected);
 ///
 /// let deserialized: OneINIAST = serde_json::from_str(&serialized).unwrap();
@@ -315,7 +316,7 @@ impl fmt::Display for Item {
 ///     value: String::from("octothorpe"),
 /// };
 ///
-/// assert_eq!(comment.to_string(), "# octothorpe\n");
+/// assert_eq!(comment.to_string(), "#octothorpe\n");
 /// ```
 ///
 /// ```
@@ -324,7 +325,7 @@ impl fmt::Display for Item {
 ///     value: String::from("semi-colon"),
 /// };
 ///
-/// assert_eq!(comment.to_string(), "; semi-colon\n");
+/// assert_eq!(comment.to_string(), ";semi-colon\n");
 /// ```
 ///
 /// # Serializing & Deserializing
@@ -387,7 +388,7 @@ pub struct Comment {
 
 impl fmt::Display for Comment {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-		writeln!(formatter, "{} {}", self.indicator, self.value)?;
+		writeln!(formatter, "{}{}", self.indicator, self.value)?;
 		Ok(())
 	}
 }
@@ -431,7 +432,7 @@ impl fmt::Display for Pair {
 ///     body: vec![
 ///         Item::Comment(Comment {
 ///             indicator: '#',
-///             value: String::from("body"),
+///             value: String::from(" body"),
 ///         }),
 ///         Item::Pair(Pair {
 ///             key: String::from("left"),
