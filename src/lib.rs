@@ -173,9 +173,8 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 			}
 			Rule::comment => {
 				let mut inner_rules = p.into_inner();
-				let ind = inner_rules.next().unwrap().as_str();
 				return Item::Comment(Comment {
-					indicator: ind.chars().next().unwrap(),
+					indicator: inner_rules.next().unwrap().as_str().chars().nth(0).unwrap(),
 					value: String::from(inner_rules.next().unwrap().as_str()),
 				});
 			}
