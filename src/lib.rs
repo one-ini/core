@@ -5,13 +5,6 @@
 //! file contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree),
 //! which can then be modified and/or serialized.
 
-// Enable WeeAlloc as global memory allocator for the WASM target
-#[cfg(target_arch = "wasm32")]
-extern crate wee_alloc;
-#[cfg(target_arch = "wasm32")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
@@ -20,42 +13,18 @@ use pest::error::Error;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::{env, fmt, str};
-use wasm_bindgen::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
-struct INIParser;
+struct IniParser;
 
-#[wasm_bindgen]
-pub fn parse_to_json(contents: &str) -> JsValue {
-	let ast = parse(&contents).unwrap();
-	return serde_wasm_bindgen::to_value(&ast).unwrap();
-	//return JsValue::from_serde(&ast).unwrap();
-}
-
-#[wasm_bindgen]
-pub fn version() -> String {
-	String::from(env!("CARGO_PKG_VERSION"))
-}
-
-#[wasm_bindgen]
-#[derive(Copy, Clone)]
-#[repr(u32)]
+#[derive(Clone, Copy)]
 pub enum TokenTypes {
 	Key,
 	Value,
 	Section,
 	CommentIndicator,
 	CommentValue,
-}
-
-#[wasm_bindgen]
-pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
-	let input = str::from_utf8(contents)?;
-	match parse_to_vec(input) {
-		Ok(res) => Ok(res),
-		Err(er) => Err(JsError::from(er)),
-	}
 }
 
 /// Parses
@@ -73,7 +42,7 @@ pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
 /// assert_eq!(results, vec![0, 0, 4, 1, 5, 9]);
 /// ```
 pub fn parse_to_vec(contents: &str) -> Result<Vec<u32>, Error<Rule>> {
-	let mut parsed = INIParser::parse(Rule::ini, contents)?;
+	let mut parsed = IniParser::parse(Rule::ini, contents)?;
 	// 300 is slightly larger than the max size found in the test suite, and
 	// should be larger than most normal .editorconfig files, to avoid a few
 	// allocations.
@@ -138,9 +107,9 @@ fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
 ///
 /// assert_eq!(ast.to_string(), contents);
 /// ```
-pub fn parse(contents: &str) -> Result<OneINIAST, Error<Rule>> {
-	return match INIParser::parse(Rule::ini, contents) {
-		Ok(mut pairs) => Ok(OneINIAST::new(create_body(pairs.next().unwrap()))),
+pub fn parse(contents: &str) -> Result<OneIniAst, Error<Rule>> {
+	return match IniParser::parse(Rule::ini, contents) {
+		Ok(mut pairs) => Ok(OneIniAst::new(create_body(pairs.next().unwrap()))),
 		Err(e) => Err(e),
 	};
 }
@@ -192,7 +161,7 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// ```
 /// use one_ini::*;
 ///
-/// let ast = OneINIAST::new(vec![
+/// let ast = OneIniAst::new(vec![
 ///     Item::Pair(Pair {
 ///         key: String::from("root"),
 ///         value: String::from("true"),
@@ -223,11 +192,11 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// let expected = "{\"version\":\"0.1.1\",\"body\":[{\"type\":\"Pair\",\"key\":\"root\",\"value\":\"true\"},{\"type\":\"Section\",\"name\":\"one\",\"body\":[{\"type\":\"Comment\",\"indicator\":\"#\",\"value\":\" body1\"}]},{\"type\":\"Section\",\"name\":\"two\",\"body\":[{\"type\":\"Comment\",\"indicator\":\";\",\"value\":\" body2\"}]}]}";
 /// assert_eq!(serialized, expected);
 ///
-/// let deserialized: OneINIAST = serde_json::from_str(&serialized).unwrap();
+/// let deserialized: OneIniAst = serde_json::from_str(&serialized).unwrap();
 /// assert_eq!(serde_json::to_string(&deserialized).unwrap(), expected);
 /// ```
 #[derive(Serialize, Deserialize, Debug)]
-pub struct OneINIAST {
+pub struct OneIniAst {
 	/// The version of the EditorConfig-INI parser.
 	pub version: String,
 	/// Contains the _prelude_, followed by any number of sections.
@@ -235,16 +204,16 @@ pub struct OneINIAST {
 	pub body: Vec<Item>,
 }
 
-impl OneINIAST {
+impl OneIniAst {
 	pub fn new<B: Into<Vec<Item>>>(body: B) -> Self {
-		OneINIAST {
+		OneIniAst {
 			version: String::from(env!("CARGO_PKG_VERSION")),
 			body: body.into(),
 		}
 	}
 }
 
-impl fmt::Display for OneINIAST {
+impl fmt::Display for OneIniAst {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		let mut wrote = false;
 		for item in &self.body {
@@ -459,18 +428,5 @@ impl fmt::Display for Section {
 			item.fmt(formatter)?;
 		}
 		Ok(())
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use std::fs;
-
-	#[test]
-	fn it_works() {
-		let contents = fs::read_to_string("tests/fixtures/config.ini").unwrap();
-		let ast = parse(&contents).unwrap();
-		assert_eq!(ast.to_string(), contents);
 	}
 }

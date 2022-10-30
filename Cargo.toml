@@ -12,36 +12,14 @@ repository = "https://github.com/one-ini/core"
 version = "0.1.1"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
-
-[features]
-default = ["console_error_panic_hook"]
+crate-type = ["lib"]
 
 [dependencies]
 pest = "2.4.0"
 pest_derive = "2.4.0"
 serde = {version = "1.0", features = ["derive"]}
-serde-wasm-bindgen = "0.4"
 serde_json = "1.0"
 wasm-bindgen = {version = "0.2.83", features = ["serde-serialize"]}
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
-console_error_panic_hook = {version = "0.1.7", optional = true}
-
-# `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
-# compared to the default allocator's ~10K. It is slower than the default
-# allocator, however.
-#
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-# Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
-wee_alloc = {version = "0.4.5"}
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.33"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
