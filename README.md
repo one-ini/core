@@ -12,7 +12,7 @@ This reference implementation is provided as Rust-library and WASM-package.
 
 <!-- markdownlint-disable commands-show-output -->
 
-The work on this project started with the search for an universal parser for the [EditorConfig INI file format specification](https://editorconfig-specification.readthedocs.io/en/latest/#id3).
+The work on this project started with the search for an universal parser for the [EditorConfig INI file format specification](https://spec.editorconfig.org/#file-format).
 
 ## WASM
 
