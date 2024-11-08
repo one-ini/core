@@ -12,5 +12,4 @@ fi
 cargo clean
 wasm-pack build --release --scope one-ini --target nodejs
 
-node -e 'n="./pkg/package.json";p=require(n);p.name="@one-ini/wasm";fs.writeFileSync(n,JSON.stringify(p,null,2))'
-(cd ./pkg || exit; npm pack --dry-run)
+(cd ./pkg || exit; npm pkg set name='@one-ini/wasm' && npm pack --dry-run)
