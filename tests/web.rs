@@ -6,7 +6,7 @@
 extern crate wasm_bindgen_test;
 use std::assert_eq;
 
-use editorconfig_ini::parse_to_uint32array;
+use one_ini::parse_to_uint32array;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);

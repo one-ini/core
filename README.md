@@ -28,10 +28,10 @@ and run the (limited) WASM tests with:
 wasm-pack test --node
 ```
 
-You can call the genereted JS wrapper with either:
+You can call the generated JS wrapper with either:
 
 ```js
-import { parse_to_json } from './pkg/editorconfig_ini.js'
+import { parse_to_json } from './pkg/one_ini.js'
 
 const results = parse_to_json(`
 root = true
