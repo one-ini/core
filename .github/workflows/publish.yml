@@ -38,9 +38,11 @@ jobs:
         run: |
           cargo clean
           wasm-pack build --release --scope one-ini --target nodejs
+      - name: Publish to npm
+        run: |
           npm pkg set name='@one-ini/wasm'
           npm pack --dry-run
-      - run: npm publish --access public --provenance
+          npm publish --access public --provenance
         working-directory: pkg
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
