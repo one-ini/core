@@ -1,0 +1,44 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Preserve line endings
+        run: git config --global core.autocrlf false
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install latest rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            profile: minimal
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Build wasm/js package
+        run: |
+          cargo clean
+          wasm-pack build --release --scope one-ini --target nodejs
+      - run: npm publish --access public --provenance
+        working-directory: pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
