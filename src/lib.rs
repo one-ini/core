@@ -438,10 +438,14 @@ impl fmt::Display for Pair {
 ///             key: String::from("left"),
 ///             value: String::from("right"),
 ///         }),
+///         Item::Pair(Pair {
+///             key: String::from("empty"),
+///             value: String::from(""),
+///         }),
 ///     ],
 /// };
 ///
-/// assert_eq!(section.to_string(), "[header]\n# body\nleft=right\n");
+/// assert_eq!(section.to_string(), "[header]\n# body\nleft=right\nempty=\n");
 /// ```
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Section {
