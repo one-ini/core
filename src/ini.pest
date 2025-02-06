@@ -18,7 +18,7 @@ header_end = !{ "]" ~ eol }
 // a key may not begin with an opening bracket and may not contain an equal sign
 key = @{ (!("=" | "[") ~ char) ~ (!key_end ~ char)* }
 key_end = @{ (WHITESPACE* ~ "=") } // Trim key's trailing whitespace
-value = @{ (!value_end ~ char)+ }
+value = @{ (!value_end ~ char)* }
 value_end = @{ WHITESPACE+ ~ eol } // Trim value's trailing whitespace
 
 // atomic primitives
