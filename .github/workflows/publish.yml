@@ -20,20 +20,16 @@ jobs:
       - name: Preserve line endings
         run: git config --global core.autocrlf false
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+			- name: Cache
+				uses: Swatinem/rust-cache@v2
       - name: Install latest rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          profile: minimal
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: "latest"
+        run: rustup toolchain install stable
+			- name: Install wasm-pack
+        run: curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: "26"
           registry-url: "https://registry.npmjs.org"
       - name: Build wasm/js package
         run: |

@@ -22,12 +22,16 @@ jobs:
         run: git config --global core.autocrlf false
       - name: Checkout
         uses: actions/checkout@v7
+			- name: Cache
+				uses: Swatinem/rust-cache@v2
       - name: Install latest rust stable
         run: rustup toolchain install stable
+			- name: Install tarpaulin
+				run: cargo install cargo-tarpaulin
       - name: Build
         run: cargo build
       - name: Test
-        run: cargo test
+        run: cargo tarpaulin
       - name: Install wasm-pack
         run: curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build wasm/js package
