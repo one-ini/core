@@ -2,3 +2,23 @@
 "cargo:wasm-pack" = "latest"
 rust = "latest"
 "cargo:wit-bindgen-cli" = "latest"
+
+[tasks.test]
+run = """
+cargo test --locked
+cargo fmt --all -- --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+"""
+
+[tasks."test:wasm"]
+run = """
+wasm-pack test --node --locked --all-features --test node
+wasm-pack test --headless --chrome --locked --all-features --test web
+"""
+
+
+[tasks."test:all"]
+run = """
+mise run test
+mise run test:wasm
+"""
