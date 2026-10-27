@@ -1,43 +1,107 @@
-name: Publish
+name: Release assets
 
 on:
   release:
     types: [published]
   workflow_call:
-    secrets:
-      NPM_TOKEN:
-        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-assets-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RUSTUP_TOOLCHAIN: stable
 
 jobs:
-  publish:
-    name: Publish to npm
+  release:
+    name: Check release version
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Check tag against Cargo version
+        id: version
+        env:
+          RELEASE_REF_TYPE: ${{ github.ref_type }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$RELEASE_REF_TYPE" != "tag" ]]; then
+            echo "::error::Publishing requires a version tag."
+            exit 1
+          fi
+          version=$(cargo metadata --locked --no-deps --format-version 1 | jq -er '.packages[] | select(.name == "one-ini") | .version')
+          if [[ "$RELEASE_TAG" != "$version" && "$RELEASE_TAG" != "v$version" ]]; then
+            echo "::error::Release tag must match Cargo.toml ($version or v$version)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Validate release commit
+    needs: release
+    uses: ./.github/workflows/rust.yml
+
+  publish:
+    name: Attach release assets
+    needs: [release, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: publish
     permissions:
-      contents: read
-      id-token: write
+      contents: write
     steps:
       - name: Preserve line endings
         run: git config --global core.autocrlf false
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Install latest rust stable
-        run: rustup toolchain install stable
-      - name: Install wasm-pack
-        run: curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
         with:
-          node-version: "26"
-          registry-url: "https://registry.npmjs.org"
-      - name: Build wasm/js package
+          ref: ${{ github.sha }}
+      - name: Install Rust and Wasm target
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.15.0 --locked
+      - name: Build Node.js package
+        run: wasm-pack build --release --scope one-ini --target nodejs --locked
+      - name: Check Node.js exports
+        run: node tests/wasm_exports.cjs
+      - name: Build web package
+        run: wasm-pack build --release --scope one-ini --target web --out-dir target/pkg-web --locked
+      - name: Check web exports
+        run: node tests/wasm_web_exports.mjs
+      - name: Package release assets
+        env:
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
         run: |
-          cargo clean
-          wasm-pack build --release --scope one-ini --target nodejs
-      - name: Publish to npm
-        run: |
-          npm pkg set name='@one-ini/wasm'
-          npm pack --dry-run
-          npm publish --access public --provenance
-        working-directory: pkg
+          mkdir -p target/release-assets
+          for target in nodejs web; do
+            if [[ "$target" == "nodejs" ]]; then
+              package_dir=pkg
+            else
+              package_dir=target/pkg-web
+            fi
+            (cd "$package_dir" && npm pkg set name='@one-ini/wasm')
+            node -e 'const assert = require("node:assert/strict"); const pkg = require(require("node:path").resolve(process.argv[1], "package.json")); assert.equal(pkg.name, "@one-ini/wasm"); assert.equal(pkg.version, process.env.RELEASE_VERSION);' "$package_dir"
+            archive=$(npm pack "$PWD/$package_dir" --json --pack-destination "$PWD/target/release-assets" | jq -er '.[0].filename')
+            mv "target/release-assets/$archive" "target/release-assets/one-ini-$RELEASE_VERSION-$target.tgz"
+          done
+          cd target/release-assets
+          sha256sum one-ini-*.tgz > SHA256SUMS
+      - name: Upload assets to the existing GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release upload "$RELEASE_TAG" target/release-assets/*.tgz target/release-assets/SHA256SUMS
