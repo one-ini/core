@@ -32,20 +32,11 @@ pub fn version() -> String {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum TokenTypes {
-	Key,
-	Value,
-	Section,
-	CommentIndicator,
-	CommentValue,
-}
-
-#[wasm_bindgen]
-pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
-	let input = str::from_utf8(contents)?;
-	match parse_to_vec(input) {
-		Ok(res) => Ok(res),
-		Err(er) => Err(JsError::from(er)),
-	}
+	Key = 0,
+	Value = 1,
+	Section = 2,
+	CommentIndicator = 3,
+	CommentValue = 4,
 }
 
 /// Parses
