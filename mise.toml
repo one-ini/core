@@ -1,0 +1,4 @@
+[tools]
+"cargo:wasm-pack" = "latest"
+rust = "latest"
+"cargo:wit-bindgen-cli" = "latest"
