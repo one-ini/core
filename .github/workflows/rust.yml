@@ -5,36 +5,81 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  RUSTUP_TOOLCHAIN: stable
 
 jobs:
-  test:
-    name: Test on ${{ matrix.os }}
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
-    runs-on: ${{ matrix.os }}
-
+  native:
+    name: Native / ${{ matrix.os }} / Rust ${{ matrix.rust }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
+        include:
+          - os: ubuntu-latest
+            rust: "1.85.0"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
     steps:
-      - name: Preserve line endings
-        run: git config --global core.autocrlf false
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Install latest rust stable
-        run: rustup toolchain install stable
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-      - name: Build
-        run: cargo build
-      - name: Test
-        run: cargo tarpaulin
-      - name: Install wasm-pack
-        run: curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
-      - name: Build wasm/js package
-        run: |
-          cargo clean
-          wasm-pack build --release --scope one-ini --target nodejs
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - run: rustup toolchain install ${{ matrix.rust }} --profile minimal
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked
+
+  wasm:
+    name: Wasm / ${{ matrix.runtime }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        runtime: [node, chrome]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - run: rustup toolchain install stable --profile minimal --component clippy --target wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: cargo install wasm-pack --version 0.15.0 --locked
+      - run: cargo clippy --locked --target wasm32-unknown-unknown --all-targets --all-features -- -D warnings
+      - if: matrix.runtime == 'node'
+        run: wasm-pack test --node --locked --all-features --test node
+      - if: matrix.runtime == 'chrome'
+        run: wasm-pack test --headless --chrome --locked --all-features --test web
+      - if: matrix.runtime == 'node'
+        run: wasm-pack build --release --target nodejs --locked
+      - if: matrix.runtime == 'node'
+        run: node tests/wasm_exports.cjs
+      - if: matrix.runtime == 'chrome'
+        run: wasm-pack build --release --target web --out-dir target/pkg-web --locked
+      - if: matrix.runtime == 'chrome'
+        run: node tests/wasm_web_exports.mjs
