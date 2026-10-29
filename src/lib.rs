@@ -5,38 +5,57 @@
 //! file contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree),
 //! which can then be modified and/or serialized.
 
-use pest::Parser;
-use pest::error::Error;
-use pest_derive::Parser;
-use serde::{Deserialize, Serialize};
-use std::fmt;
+// Enable WeeAlloc as global memory allocator for the WASM target
+#[cfg(target_arch = "wasm32")]
+extern crate wee_alloc;
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[cfg(target_arch = "wasm32")]
-mod utils;
-#[cfg(target_arch = "wasm32")]
-mod wasm;
-#[cfg(target_arch = "wasm32")]
-pub use wasm::{parse_to_json, parse_to_uint32array};
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
+
+use pest::error::Error;
+use pest::Parser;
+use serde::{Deserialize, Serialize};
+use std::{env, fmt, str};
+use wasm_bindgen::prelude::*;
 
 #[derive(Parser)]
 #[grammar = "ini.pest"]
 struct INIParser;
 
-/// Returns the parser package version.
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+#[wasm_bindgen]
+pub fn parse_to_json(contents: &str) -> JsValue {
+	let ast = parse(&contents).unwrap();
+	return serde_wasm_bindgen::to_value(&ast).unwrap();
+	//return JsValue::from_serde(&ast).unwrap();
+}
+
+#[wasm_bindgen]
 pub fn version() -> String {
 	String::from(env!("CARGO_PKG_VERSION"))
 }
 
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[wasm_bindgen]
+#[derive(Copy, Clone)]
 #[repr(u32)]
 pub enum TokenTypes {
-	Key = 0,
-	Value = 1,
-	Section = 2,
-	CommentIndicator = 3,
-	CommentValue = 4,
+	Key,
+	Value,
+	Section,
+	CommentIndicator,
+	CommentValue,
+}
+
+#[wasm_bindgen]
+pub fn parse_to_uint32array(contents: &[u8]) -> Result<Vec<u32>, JsError> {
+	let input = str::from_utf8(contents)?;
+	match parse_to_vec(input) {
+		Ok(res) => Ok(res),
+		Err(er) => Err(JsError::from(er)),
+	}
 }
 
 /// Parses
@@ -45,8 +64,6 @@ pub enum TokenTypes {
 /// ints, a type from the TokenTypes enum, a starting byte offset, and an
 /// ending byte offset.  It is up to the caller to reconstruct an AST, and
 /// pull UTF8-encoding strings out of the input buffer.
-/// End offsets are exclusive. Like [`parse`], this accepts a valid prefix
-/// without requiring that the complete input is valid.
 ///
 /// # Example
 ///
@@ -74,7 +91,10 @@ fn push_token(typ: TokenTypes, pair: pest::iterators::Pair<'_, Rule>, results: &
 }
 
 fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
-	let children = pair.into_inner().filter(|p| p.as_rule() != Rule::EOI);
+	let children = pair.into_inner().filter(|p| match p.as_rule() {
+		Rule::EOI => false,
+		_ => true,
+	});
 	for child in children {
 		match child.as_rule() {
 			Rule::section => {
@@ -110,10 +130,6 @@ fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
 /// Parses [EditorConfig-INI](https://editorconfig-specification.readthedocs.io/en/latest/#file-format)
 /// contents into [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 ///
-/// This currently parses a valid prefix; an invalid suffix can be ignored.
-/// It must not be used to validate an entire document. Formatting the AST
-/// normalizes whitespace and line endings.
-///
 /// # Example
 ///
 /// ```
@@ -123,42 +139,48 @@ fn fill_vec(pair: pest::iterators::Pair<'_, Rule>, results: &mut Vec<u32>) {
 /// assert_eq!(ast.to_string(), contents);
 /// ```
 pub fn parse(contents: &str) -> Result<OneINIAST, Error<Rule>> {
-	let mut pairs = INIParser::parse(Rule::ini, contents)?;
-	Ok(OneINIAST::new(create_body(pairs.next().unwrap())))
+	return match INIParser::parse(Rule::ini, contents) {
+		Ok(mut pairs) => Ok(OneINIAST::new(create_body(pairs.next().unwrap()))),
+		Err(e) => Err(e),
+	};
 }
 
 fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
-	pair.into_inner()
-		.filter(|p| p.as_rule() != Rule::EOI)
+	return pair
+		.into_inner()
+		.filter(|p| match p.as_rule() {
+			Rule::EOI => false,
+			_ => true,
+		})
 		.map(|p| match p.as_rule() {
 			Rule::section => {
 				let mut inner_rules = p.into_inner();
 				let header = inner_rules.next().unwrap().into_inner().next().unwrap();
-				Item::Section(Section {
+				return Item::Section(Section {
 					name: String::from(header.as_str()),
 					body: match inner_rules.next() {
 						Some(pair) => create_body(pair),
 						_ => vec![],
 					},
-				})
+				});
 			}
 			Rule::pair => {
 				let mut inner_rules = p.into_inner();
-				Item::Pair(Pair {
+				return Item::Pair(Pair {
 					key: String::from(inner_rules.next().unwrap().as_str()),
 					value: String::from(inner_rules.next().unwrap().as_str()),
-				})
+				});
 			}
 			Rule::comment => {
 				let mut inner_rules = p.into_inner();
-				Item::Comment(Comment {
-					indicator: inner_rules.next().unwrap().as_str().chars().next().unwrap(),
+				return Item::Comment(Comment {
+					indicator: inner_rules.next().unwrap().as_str().chars().nth(0).unwrap(),
 					value: String::from(inner_rules.next().unwrap().as_str()),
-				})
+				});
 			}
 			_ => unreachable!(),
 		})
-		.collect()
+		.collect();
 }
 
 /// The root [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) node of
@@ -205,12 +227,12 @@ fn create_body(pair: pest::iterators::Pair<'_, Rule>) -> Vec<Item> {
 /// let deserialized: OneINIAST = serde_json::from_str(&serialized).unwrap();
 /// assert_eq!(serde_json::to_string(&deserialized).unwrap(), expected);
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct OneINIAST {
 	/// The version of the EditorConfig-INI parser.
 	pub version: String,
 	/// Contains the _prelude_, followed by any number of sections.
-	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub body: Vec<Item>,
 }
 
@@ -227,8 +249,13 @@ impl fmt::Display for OneINIAST {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		let mut wrote = false;
 		for item in &self.body {
-			if wrote && matches!(item, Item::Section(_)) {
-				writeln!(formatter)?;
+			match item {
+				Item::Section(_section) => {
+					if wrote {
+						writeln!(formatter)?;
+					}
+				}
+				_ => (),
 			}
 			item.fmt(formatter)?;
 			wrote = true;
@@ -259,7 +286,7 @@ impl fmt::Display for OneINIAST {
 /// assert_eq!(deserialized.indicator, '#');
 /// assert_eq!(deserialized.value, "octothorpe");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum Item {
 	Comment(Comment),
@@ -318,7 +345,7 @@ impl fmt::Display for Item {
 /// assert_eq!(deserialized.indicator, '#');
 /// assert_eq!(deserialized.value, "octothorpe");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Comment {
 	/// The character that begins a comment. This may only be
 	/// an octothorpe (`#`) or a semi-colon (`;`).
@@ -326,6 +353,38 @@ pub struct Comment {
 	/// The value that follows the comment indicator.
 	pub value: String,
 }
+
+/// Serializes a comment as a JSON string.
+///
+/// # Example
+///
+/// ```
+/// let comment = one_ini::Comment {
+///     indicator: '#',
+///     value: String::from("octothorpe"),
+/// };
+/// let serialized = serde_json::to_string(&comment).unwrap();
+/// let deserialized: one_ini::Comment = serde_json::from_str(&serialized).unwrap();
+///
+/// assert_eq!(
+///     serialized,
+///     "{\"indicator\":\"#\",\"value\":\"octothorpe\"}",
+/// );
+/// assert_eq!(deserialized.indicator, '#');
+/// assert_eq!(deserialized.value, "octothorpe");
+/// ```
+// impl Serialize for Comment {
+// 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+// 	where
+// 		S: Serializer,
+// 	{
+// 		let mut state = serializer.serialize_struct("Comment", 3)?;
+// 		// state.serialize_field("type", "comment")?;
+// 		state.serialize_field("indicator", &self.indicator)?;
+// 		state.serialize_field("value", &self.value)?;
+// 		return state.end();
+// 	}
+// }
 
 impl fmt::Display for Comment {
 	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -346,7 +405,7 @@ impl fmt::Display for Comment {
 ///
 /// assert_eq!(pair.to_string(), "left=right\n");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Pair {
 	/// Appears on the _left_ side of the assignment (`=`).
 	pub key: String,
@@ -388,13 +447,13 @@ impl fmt::Display for Pair {
 ///
 /// assert_eq!(section.to_string(), "[header]\n# body\nleft=right\nempty=\n");
 /// ```
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Section {
 	/// The section header's name (i.e., the part between `[` and `]`).,
 	pub name: String,
 	/// Contains any number of items, which may only consist of
 	/// comments and pairs.
-	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub body: Vec<Item>,
 }
 
@@ -411,11 +470,12 @@ impl fmt::Display for Section {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use std::fs;
 
 	#[test]
-	fn fixture_roundtrip() {
-		let contents = include_str!("../tests/fixtures/config.ini");
-		let ast = parse(contents).unwrap();
+	fn it_works() {
+		let contents = fs::read_to_string("tests/fixtures/config.ini").unwrap();
+		let ast = parse(&contents).unwrap();
 		assert_eq!(ast.to_string(), contents);
 	}
 }

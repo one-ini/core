@@ -1,9 +1,21 @@
-//! Binding contracts in a real browser.
+//! Test suite for the Web and headless browsers.
+
+#![cfg(test)]
 #![cfg(target_arch = "wasm32")]
 
-use wasm_bindgen_test::wasm_bindgen_test_configure;
+extern crate wasm_bindgen_test;
+use std::assert_eq;
+
+use one_ini::parse_to_uint32array;
+use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-#[path = "common/wasm.rs"]
-mod contracts;
+#[wasm_bindgen_test]
+fn uint32array() {
+	let expected: Vec<u32> = vec![0, 0, 4, 1, 5, 9, 2, 11, 12, 0, 14, 15, 1, 16, 17];
+	match parse_to_uint32array(String::from("root=true\n[a]\nb=c").as_bytes()) {
+		Ok(v) => assert_eq!(v, expected),
+		Err(_) => assert!(false),
+	}
+}

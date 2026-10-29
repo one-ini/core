@@ -1,6 +1,6 @@
 //! Integration test suite for the parse function.
 
-use one_ini::{TokenTypes, parse, parse_to_vec};
+use one_ini::{parse, parse_to_vec, TokenTypes};
 use std::str;
 
 // Whitespace tests
@@ -112,37 +112,49 @@ fn compare<S: Into<String>>(contents: S, expected: &str) {
 
 #[test]
 fn no_whitespace_vec() {
-	compare_vec("a=b", &[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")]);
+	compare_vec(
+		"a=b",
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+	);
 }
 
 #[test]
 fn trims_spaces_around_equals_vec() {
-	compare_vec("a = b", &[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")]);
+	compare_vec(
+		"a = b",
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+	);
 }
 
 #[test]
 fn trims_multiple_spaces_around_equals_vec() {
 	compare_vec(
 		"a  =   b",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
 	);
 }
 
 #[test]
 fn trims_spaces_before_pair_key_vec() {
-	compare_vec("  a=b", &[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")]);
+	compare_vec(
+		"  a=b",
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+	);
 }
 
 #[test]
 fn trims_spaces_after_pair_value_vec() {
-	compare_vec("a=b  ", &[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")]);
+	compare_vec(
+		"a=b  ",
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+	);
 }
 
 #[test]
 fn removes_blank_lines_between_properties_vec() {
 	compare_vec(
 		"\na=b\n\nc=d",
-		&[
+		&vec![
 			(TokenTypes::Key, "a"),
 			(TokenTypes::Value, "b"),
 			(TokenTypes::Key, "c"),
@@ -153,29 +165,29 @@ fn removes_blank_lines_between_properties_vec() {
 
 #[test]
 fn includes_spaces_in_section_name_vec() {
-	compare_vec("[ a b ]", &[(TokenTypes::Section, " a b ")])
+	compare_vec("[ a b ]", &vec![(TokenTypes::Section, " a b ")])
 }
 
 #[test]
 fn trims_spaces_before_section_name_vec() {
-	compare_vec("  [a]", &[(TokenTypes::Section, "a")]);
+	compare_vec("  [a]", &vec![(TokenTypes::Section, "a")]);
 }
 
 #[test]
 fn trims_spaces_after_section_name_vec() {
-	compare_vec("[a]  ", &[(TokenTypes::Section, "a")]);
+	compare_vec("[a]  ", &vec![(TokenTypes::Section, "a")]);
 }
 
 #[test]
 fn handles_nested_section_braces_vec() {
-	compare_vec("[[a]]", &[(TokenTypes::Section, "[a]")]);
+	compare_vec("[[a]]", &vec![(TokenTypes::Section, "[a]")]);
 }
 
 #[test]
 fn trims_spaces_before_middle_pair_vec() {
 	compare_vec(
 		"a=b\n  c=d\ne=f",
-		&[
+		&vec![
 			(TokenTypes::Key, "a"),
 			(TokenTypes::Value, "b"),
 			(TokenTypes::Key, "c"),
@@ -192,7 +204,7 @@ fn trims_spaces_before_middle_pair_vec() {
 fn comment_indicator_in_section_before_pair_vec() {
 	compare_vec(
 		"[a]\n;b\nc=d",
-		&[
+		&vec![
 			(TokenTypes::Section, "a"),
 			(TokenTypes::CommentIndicator, ";"),
 			(TokenTypes::CommentValue, "b"),
@@ -202,7 +214,7 @@ fn comment_indicator_in_section_before_pair_vec() {
 	);
 	compare_vec(
 		"[a]\n#b\nc=d",
-		&[
+		&vec![
 			(TokenTypes::Section, "a"),
 			(TokenTypes::CommentIndicator, "#"),
 			(TokenTypes::CommentValue, "b"),
@@ -216,7 +228,7 @@ fn comment_indicator_in_section_before_pair_vec() {
 fn comment_indicator_in_section_between_pairs_vec() {
 	compare_vec(
 		"[a]\nb=c\n;d\ne=f",
-		&[
+		&vec![
 			(TokenTypes::Section, "a"),
 			(TokenTypes::Key, "b"),
 			(TokenTypes::Value, "c"),
@@ -228,7 +240,7 @@ fn comment_indicator_in_section_between_pairs_vec() {
 	);
 	compare_vec(
 		"[a]\nb=c\n#d\ne=f",
-		&[
+		&vec![
 			(TokenTypes::Section, "a"),
 			(TokenTypes::Key, "b"),
 			(TokenTypes::Value, "c"),
@@ -244,11 +256,11 @@ fn comment_indicator_in_section_between_pairs_vec() {
 fn comment_indicator_included_in_value_vec() {
 	compare_vec(
 		"a=b; c",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b; c")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b; c")],
 	);
 	compare_vec(
 		"a=b# c",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b# c")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b# c")],
 	);
 }
 
@@ -258,11 +270,11 @@ fn escaped_comment_indicator_in_value_vec() {
 	// remove the backslash?
 	compare_vec(
 		"a=b\\;c",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b\\;c")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b\\;c")],
 	);
 	compare_vec(
 		"a=b\\#c",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b\\#c")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b\\#c")],
 	);
 }
 
@@ -270,15 +282,15 @@ fn escaped_comment_indicator_in_value_vec() {
 fn escaped_comment_indicator_in_section_name_vec() {
 	// TODO: Not sure about this one.  Why and how does the test above
 	// remove the backslash?
-	compare_vec("[a\\;b]", &[(TokenTypes::Section, "a\\;b")]);
-	compare_vec("[a\\#b]", &[(TokenTypes::Section, "a\\#b")]);
+	compare_vec("[a\\;b]", &vec![(TokenTypes::Section, "a\\;b")]);
+	compare_vec("[a\\#b]", &vec![(TokenTypes::Section, "a\\#b")]);
 }
 
 #[test]
 fn removes_bom_vec() {
 	compare_vec(
 		"\u{feff}a=b",
-		&[(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "b")],
 	);
 }
 
@@ -286,7 +298,7 @@ fn removes_bom_vec() {
 fn crlf_line_separators_vec() {
 	compare_vec(
 		"[a]\r\nb=c",
-		&[
+		&vec![
 			(TokenTypes::Section, "a"),
 			(TokenTypes::Key, "b"),
 			(TokenTypes::Value, "c"),
@@ -296,45 +308,51 @@ fn crlf_line_separators_vec() {
 
 #[test]
 fn partial_section_vec() {
-	compare_vec("[foo", &[]);
+	compare_vec("[foo", &vec![]);
 }
 
 // Tests for the test harness
 #[test]
 #[should_panic]
 fn compare_vec_not_enough() {
-	compare_vec("", &[(TokenTypes::Key, "a")]);
+	compare_vec("", &vec![(TokenTypes::Key, "a")]);
 }
 
 #[test]
 #[should_panic]
 fn compare_vec_too_many() {
-	compare_vec("a=b", &[(TokenTypes::Key, "a")]);
+	compare_vec("a=b", &vec![(TokenTypes::Key, "a")]);
 }
 
 #[test]
 #[should_panic]
 fn compare_vec_wrong_token() {
-	compare_vec("a=b", &[(TokenTypes::Key, "a"), (TokenTypes::Key, "b")]);
+	compare_vec("a=b", &vec![(TokenTypes::Key, "a"), (TokenTypes::Key, "b")]);
 }
 
 #[test]
 #[should_panic]
 fn compare_vec_wrong_value() {
-	compare_vec("a=b", &[(TokenTypes::Key, "a"), (TokenTypes::Value, "c")]);
+	compare_vec(
+		"a=b",
+		&vec![(TokenTypes::Key, "a"), (TokenTypes::Value, "c")],
+	);
 }
 
-fn compare_vec<S: Into<String>>(contents: S, expected: &[(TokenTypes, &str)]) {
+fn compare_vec<S: Into<String>>(contents: S, expected: &Vec<(TokenTypes, &str)>) {
 	let s: String = contents.into();
 	let v = parse_to_vec(&s).unwrap();
 	let buf = s.as_bytes();
 
-	assert_eq!(v.len(), expected.len() * 3);
-	for (chunk, &(etyp, estr)) in v.chunks_exact(3).zip(expected) {
+	let mut i = 0;
+	for chunk in v.chunks(3) {
+		let (etyp, estr) = expected[i];
 		assert_eq!(chunk[0], etyp as u32);
 		assert_eq!(
 			str::from_utf8(&buf[chunk[1] as usize..chunk[2] as usize]).unwrap(),
 			estr
 		);
+		i += 1;
 	}
+	assert_eq!(i, expected.len());
 }

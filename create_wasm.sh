@@ -9,6 +9,7 @@ EOM
     exit 1
 fi
 
-wasm-pack build --release --scope one-ini --target nodejs --locked
+cargo clean
+wasm-pack build --release --scope one-ini --target nodejs
 
 (cd ./pkg || exit; npm pkg set name='@one-ini/wasm' && npm pack --dry-run)
