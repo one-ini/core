@@ -93,3 +93,36 @@ const ary = parse_to_uint32array(buf)
 //   TokenTypes.Value, 63, 65
 // ]
 ```
+
+## Development
+
+To get started with local development you will need some Rust tooling.
+
+Rustup will install all language specific toolings for Rust, the cargo command installs the WASM-specific helpers.
+
+```
+rustup toolchain install stable
+cargo setup
+```
+
+
+## WASM memory reuse check
+
+Following a memory leak report (thanks @onmax), this minimal test checks memory
+reuse on subsequent calls to `parse_to_json` and `parse_to_uint32array`.
+
+Build a fresh release package and run the Node.js tests:
+
+```sh
+wasm-pack build --release --scope one-ini --target nodejs
+node --test --test-reporter=tap tests/wasm-memory.cjs
+```
+
+Each parse export gets a fresh WASM instance and the same input containing 128
+pairs with index-prefixed keys and values. After 100 warm-up calls, the test checks
+that another 100 calls do not grow linear memory. Results are discarded. TAP output
+includes the before/after memory sizes, and memory growth fails the test.
+
+Continued growth flags a potential leak. Stable memory demonstrates reuse for
+this workload, but cannot exclude every leak. Freed WASM allocations are reusable;
+linear memory is not expected to shrink. This check measures WASM memory only.

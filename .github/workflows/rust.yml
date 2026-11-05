@@ -34,7 +34,13 @@ jobs:
         run: cargo tarpaulin
       - name: Install wasm-pack
         run: curl https://wasm-bindgen.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "26"
       - name: Build wasm/js package
         run: |
           cargo clean
           wasm-pack build --release --scope one-ini --target nodejs
+      - name: Check WASM memory reuse
+        run: node --test --test-reporter=tap tests/wasm-memory.cjs
