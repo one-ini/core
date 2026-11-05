@@ -14,6 +14,18 @@ This reference implementation is provided as Rust-library and WASM-package.
 
 The work on this project started with the search for an universal parser for the [EditorConfig INI file format specification](https://spec.editorconfig.org/#file-format).
 
+## Development setup
+
+Install Rust via rustup and Node.js 26 (including npm), then run:
+
+```sh
+cargo setup
+```
+
+This installs `wasm-pack` for WASM builds and `cargo-tarpaulin` for coverage.
+Cargo uses the toolchain, components, and WASM target from `rust-toolchain.toml`.
+The `--locked` install uses each tool's published lockfile; tool versions are not pinned.
+
 ## WASM
 
 To use from [Web Assembly](https://webassembly.org/), compile with:
