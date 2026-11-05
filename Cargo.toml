@@ -9,7 +9,7 @@ license = "MIT"
 name = "one-ini"
 publish = false
 repository = "https://github.com/one-ini/core"
-version = "0.2.2"
+version = "0.2.3"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
