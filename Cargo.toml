@@ -42,3 +42,6 @@ wasm-bindgen-test = "0.3.61"
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+[alias]
+setup = "install --locked wasm-pack cargo-tarpaulin"
